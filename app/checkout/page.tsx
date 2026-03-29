@@ -96,13 +96,13 @@ export default function CheckoutPage() {
         paymentMethod,
       };
 
-      // Try saving to Firebase
+      // Try saving to Firebase (with 5s timeout)
       try {
         const { collection, addDoc, serverTimestamp } = await import(
           "firebase/firestore"
         );
         const { db } = await import("@/lib/firebase");
-        await addDoc(collection(db, "orders"), {
+        const firebasePromise = addDoc(collection(db, "orders"), {
           orderId: id,
           customerName: name.trim(),
           phone: phone.trim(),
@@ -113,6 +113,10 @@ export default function CheckoutPage() {
           status: "new",
           createdAt: serverTimestamp(),
         });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Firebase timeout")), 5000)
+        );
+        await Promise.race([firebasePromise, timeoutPromise]);
       } catch {
         console.warn("Firebase save failed — proceeding with WhatsApp order");
       }
