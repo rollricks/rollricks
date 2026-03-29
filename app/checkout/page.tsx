@@ -178,7 +178,7 @@ export default function CheckoutPage() {
           {/* QR Code */}
           <div className="bg-white rounded-2xl p-4 shadow-lg">
             <Image
-              src="/qr-payment.jfif"
+              src="/qr-payment.png"
               alt="UPI Payment QR Code"
               width={260}
               height={260}

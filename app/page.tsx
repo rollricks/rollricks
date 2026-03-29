@@ -1,10 +1,11 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Flame, Package, Smartphone } from "lucide-react";
+import { Flame, Package, Smartphone, ShoppingCart } from "lucide-react";
 import { featuredCombos } from "@/lib/combo-data";
 import ComboCard from "@/components/ComboCard";
+import { useCart } from "@/context/CartContext";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -39,15 +40,15 @@ const features = [
 ];
 
 export default function HomePage() {
+  const { totalItems, totalPrice } = useCart();
+
   return (
     <main className="min-h-screen bg-[#09090b]">
       {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center dot-grid px-4">
-        {/* Gradient overlay at bottom */}
+      <section className="relative min-h-[90vh] flex flex-col items-center justify-center dot-grid px-4">
         <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-transparent to-transparent pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col items-center text-center gap-6">
-          {/* Live status badge */}
+        <div className="relative z-10 flex flex-col items-center text-center gap-5">
           <motion.div
             custom={0}
             variants={fadeUp}
@@ -59,7 +60,6 @@ export default function HomePage() {
             <span className="text-sm font-body text-[#22C55E]">Open Now</span>
           </motion.div>
 
-          {/* Brand name */}
           <motion.h1
             custom={1}
             variants={fadeUp}
@@ -74,7 +74,6 @@ export default function HomePage() {
             ROLLRICKS
           </motion.h1>
 
-          {/* Tagline */}
           <motion.p
             custom={2}
             variants={fadeUp}
@@ -95,7 +94,6 @@ export default function HomePage() {
             We serve 5-star food on the street
           </motion.p>
 
-          {/* CTA buttons */}
           <motion.div
             custom={3}
             variants={fadeUp}
@@ -120,19 +118,22 @@ export default function HomePage() {
       </section>
 
       {/* Today's Hits Section */}
-      <section id="combos" className="py-20 px-4 max-w-6xl mx-auto">
+      <section id="combos" className="py-16 px-4 max-w-6xl mx-auto">
         <motion.div
           variants={sectionFade}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
         >
-          <h2 className="font-display text-4xl md:text-5xl text-[#e4e4e7] tracking-wider text-center mb-12">
+          <h2 className="font-display text-4xl md:text-5xl text-[#e4e4e7] tracking-wider text-center mb-3">
             TODAY&apos;S HITS
           </h2>
+          <p className="text-center text-sm text-[#71717a] font-body mb-10">
+            Tap &ldquo;Add to Cart&rdquo; and checkout instantly
+          </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {featuredCombos.map((combo, i) => (
             <motion.div
               key={combo.id}
@@ -156,27 +157,27 @@ export default function HomePage() {
         >
           <Link
             href="/menu"
-            className="inline-flex items-center gap-2 text-[#FFD600] font-body font-medium hover:underline"
+            className="inline-flex items-center gap-2 px-8 py-3 rounded-full border border-[#FFD600] text-[#FFD600] font-bold text-sm hover:bg-[#FFD600]/10 active:scale-95 transition-all"
           >
-            See Full Menu <span aria-hidden="true">&rarr;</span>
+            See Full Menu &amp; All Combos <span aria-hidden="true">&rarr;</span>
           </Link>
         </motion.div>
       </section>
 
       {/* Why RollRicks Section */}
-      <section className="py-20 px-4 max-w-6xl mx-auto">
+      <section className="py-16 px-4 max-w-6xl mx-auto">
         <motion.div
           variants={sectionFade}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
         >
-          <h2 className="font-display text-4xl md:text-5xl text-[#e4e4e7] tracking-wider text-center mb-12">
+          <h2 className="font-display text-4xl md:text-5xl text-[#e4e4e7] tracking-wider text-center mb-10">
             WHY ROLLRICKS
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {features.map((feature, i) => (
             <motion.div
               key={feature.title}
@@ -202,7 +203,7 @@ export default function HomePage() {
       </section>
 
       {/* Events Teaser Section */}
-      <section className="py-20 px-4 max-w-6xl mx-auto">
+      <section className="py-16 px-4 max-w-6xl mx-auto pb-28">
         <motion.div
           variants={sectionFade}
           initial="hidden"
@@ -226,6 +227,34 @@ export default function HomePage() {
           </Link>
         </motion.div>
       </section>
+
+      {/* Sticky Bottom Cart Bar */}
+      <AnimatePresence>
+        {totalItems > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="fixed bottom-0 left-0 right-0 z-40 p-4"
+          >
+            <Link
+              href="/checkout"
+              className="flex items-center justify-between max-w-6xl mx-auto px-6 py-4 rounded-2xl bg-[#FFD600] text-[#09090b] shadow-[0_-4px_24px_rgba(255,214,0,0.3)]"
+            >
+              <div className="flex items-center gap-3">
+                <ShoppingCart className="w-5 h-5" />
+                <span className="font-bold text-sm">
+                  View Cart ({totalItems} {totalItems === 1 ? "item" : "items"})
+                </span>
+              </div>
+              <span className="font-display text-xl">
+                ₹{totalPrice}
+              </span>
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

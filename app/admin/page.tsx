@@ -39,6 +39,8 @@ interface Order {
 
 const STATUS_TABS = ["All", "New", "Confirmed", "Preparing", "Ready", "Done"];
 
+type AdminSection = "orders" | "analytics" | "menu";
+
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [adminId, setAdminId] = useState("");
@@ -49,6 +51,7 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState("All");
   const [firebaseError, setFirebaseError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<AdminSection>("orders");
 
   const [menuAvailability, setMenuAvailability] = useState<
     Record<string, boolean>
@@ -63,14 +66,12 @@ export default function AdminPage() {
     const envAdminId = process.env.NEXT_PUBLIC_ADMIN_ID;
     const envAdminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
 
-    // Check against env credentials first
     if (envAdminId && envAdminPassword && adminId.trim() === envAdminId && password === envAdminPassword) {
       setIsLoggedIn(true);
       setLoggingIn(false);
       return;
     }
 
-    // Try Firebase auth as fallback (email + password) with 5s timeout
     try {
       const authPromise = signInWithEmailAndPassword(auth, adminId, password);
       const timeoutPromise = new Promise((_, reject) =>
@@ -186,7 +187,67 @@ export default function AdminPage() {
     const pending = todayOrders.filter(
       (o) => o.status !== "done"
     ).length;
-    return { count: todayOrders.length, revenue, pending };
+    const completed = todayOrders.filter(
+      (o) => o.status === "done"
+    ).length;
+    const avgOrderValue = todayOrders.length > 0 ? Math.round(revenue / todayOrders.length) : 0;
+    return { count: todayOrders.length, revenue, pending, completed, avgOrderValue };
+  }, [orders]);
+
+  // Analytics data
+  const analytics = useMemo(() => {
+    // Top selling items across all orders
+    const itemCounts: Record<string, { count: number; revenue: number }> = {};
+    orders.forEach((order) => {
+      order.items.forEach((item) => {
+        if (!itemCounts[item.name]) {
+          itemCounts[item.name] = { count: 0, revenue: 0 };
+        }
+        itemCounts[item.name].count += item.quantity;
+        itemCounts[item.name].revenue += item.price;
+      });
+    });
+
+    const topSellers = Object.entries(itemCounts)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    const maxCount = topSellers[0]?.count ?? 1;
+
+    // Payment method breakdown
+    const paymentBreakdown: Record<string, number> = {};
+    orders.forEach((o) => {
+      const method = o.paymentMethod || "Unknown";
+      paymentBreakdown[method] = (paymentBreakdown[method] || 0) + 1;
+    });
+
+    // Status breakdown
+    const statusBreakdown: Record<string, number> = {};
+    orders.forEach((o) => {
+      const s = o.status || "unknown";
+      statusBreakdown[s] = (statusBreakdown[s] || 0) + 1;
+    });
+
+    // Total revenue all time
+    const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+    const totalOrders = orders.length;
+    const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
+
+    // Orders by hour (today)
+    const today = new Date().toDateString();
+    const hourly: Record<number, number> = {};
+    orders.forEach((o) => {
+      try {
+        const d = new Date(o.createdAt);
+        if (d.toDateString() === today) {
+          const h = d.getHours();
+          hourly[h] = (hourly[h] || 0) + 1;
+        }
+      } catch { /* skip */ }
+    });
+
+    return { topSellers, maxCount, paymentBreakdown, statusBreakdown, totalRevenue, totalOrders, avgOrderValue, hourly };
   }, [orders]);
 
   // Status change handler
@@ -228,6 +289,14 @@ export default function AdminPage() {
       setMenuAvailability((prev) => ({ ...prev, [itemId]: !newVal }));
     }
   }
+
+  const statusColor: Record<string, string> = {
+    new: "#FFD600",
+    confirmed: "#3B82F6",
+    preparing: "#8B5CF6",
+    ready: "#22C55E",
+    done: "#71717a",
+  };
 
   // Login Screen
   if (!isLoggedIn) {
@@ -288,7 +357,7 @@ export default function AdminPage() {
       {/* Top Bar */}
       <header className="sticky top-0 z-50 bg-[#09090b]/90 backdrop-blur-md border-b border-[#27272a] px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <h1 className="font-display text-2xl text-[#FFD600] tracking-wider">
+          <h1 className="font-display text-xl text-[#FFD600] tracking-wider">
             ROLLRICKS ADMIN
           </h1>
           <button
@@ -296,12 +365,31 @@ export default function AdminPage() {
               auth.signOut().catch(() => {});
               setIsLoggedIn(false);
             }}
-            className="px-4 py-2 rounded-lg border border-[#27272a] text-sm font-body text-[#a1a1aa] hover:border-[#E53935] hover:text-[#E53935] transition-colors"
+            className="px-3 py-1.5 rounded-lg border border-[#27272a] text-xs font-body text-[#a1a1aa] hover:border-[#E53935] hover:text-[#E53935] transition-colors"
           >
             Logout
           </button>
         </div>
       </header>
+
+      {/* Section Tabs */}
+      <div className="sticky top-[52px] z-40 bg-[#09090b]/95 backdrop-blur border-b border-[#27272a]">
+        <div className="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto py-2">
+          {(["orders", "analytics", "menu"] as AdminSection[]).map((section) => (
+            <button
+              key={section}
+              onClick={() => setActiveSection(section)}
+              className={`px-4 py-2 rounded-lg text-sm font-bold capitalize whitespace-nowrap transition-all ${
+                activeSection === section
+                  ? "bg-[#FFD600] text-[#09090b]"
+                  : "text-[#71717a] hover:text-[#a1a1aa]"
+              }`}
+            >
+              {section === "orders" ? "Live Orders" : section === "analytics" ? "Analytics" : "Menu Control"}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {firebaseError ? (
         <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">
@@ -309,156 +397,314 @@ export default function AdminPage() {
             <p className="text-[#E53935] font-body font-medium text-lg">
               {firebaseError}
             </p>
-            <p className="text-[#71717a] font-body text-sm mt-2">
-              Add NEXT_PUBLIC_FIREBASE_* environment variables to your
-              .env.local file and restart the dev server.
-            </p>
           </div>
         </div>
       ) : (
-        <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
-          {/* Stats */}
+        <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+          {/* Quick Stats (always visible) */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-3 gap-4"
+            className="grid grid-cols-2 sm:grid-cols-4 gap-3"
           >
             <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
-              <p className="text-[#71717a] text-xs font-body uppercase tracking-wider">
+              <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">
                 Today&apos;s Orders
               </p>
-              <p className="font-display text-3xl text-[#e4e4e7] mt-1">
+              <p className="font-display text-2xl text-[#e4e4e7] mt-1">
                 {todayStats.count}
               </p>
             </div>
             <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
-              <p className="text-[#71717a] text-xs font-body uppercase tracking-wider">
-                Today&apos;s Revenue
+              <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">
+                Revenue
               </p>
-              <p className="font-display text-3xl text-[#FFD600] mt-1">
+              <p className="font-display text-2xl text-[#FFD600] mt-1">
                 ₹{todayStats.revenue.toLocaleString("en-IN")}
               </p>
             </div>
             <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
-              <p className="text-[#71717a] text-xs font-body uppercase tracking-wider">
-                Pending Orders
+              <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">
+                Pending
               </p>
-              <p className="font-display text-3xl text-[#e4e4e7] mt-1">
+              <p className="font-display text-2xl text-[#E53935] mt-1">
                 {todayStats.pending}
+              </p>
+            </div>
+            <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
+              <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">
+                Avg Order
+              </p>
+              <p className="font-display text-2xl text-[#22C55E] mt-1">
+                ₹{todayStats.avgOrderValue}
               </p>
             </div>
           </motion.div>
 
-          {/* Orders Section */}
-          <section className="space-y-4">
-            <h2 className="font-display text-2xl text-[#FFD600] tracking-wider">
-              LIVE ORDERS
-            </h2>
+          {/* ORDERS SECTION */}
+          {activeSection === "orders" && (
+            <section className="space-y-4">
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {STATUS_TABS.map((tab) => {
+                  const count = tab === "All"
+                    ? orders.length
+                    : orders.filter((o) => o.status.toLowerCase() === tab.toLowerCase()).length;
+                  return (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-body font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                        activeTab === tab
+                          ? "bg-[#FFD600] text-[#09090b]"
+                          : "bg-[#18181b] text-[#a1a1aa] border border-[#27272a] hover:border-[#FFD600]/50"
+                      }`}
+                    >
+                      {tab}
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                        activeTab === tab ? "bg-[#09090b]/20" : "bg-[#27272a]"
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-            {/* Status Tabs */}
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {STATUS_TABS.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg text-sm font-body font-medium whitespace-nowrap transition-colors ${
-                    activeTab === tab
-                      ? "bg-[#FFD600] text-[#09090b]"
-                      : "bg-[#18181b] text-[#a1a1aa] border border-[#27272a] hover:border-[#FFD600]/50"
-                  }`}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25 }}
                 >
-                  {tab}
-                </button>
-              ))}
-            </div>
+                  {filteredOrders.length === 0 ? (
+                    <div className="rounded-xl bg-[#111] border border-[#27272a] p-12 text-center">
+                      <p className="text-[#71717a] font-body">
+                        {orders.length === 0
+                          ? "No orders yet. Share your menu link!"
+                          : `No ${activeTab.toLowerCase()} orders.`}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredOrders.map((order, idx) => (
+                        <motion.div
+                          key={order.id}
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: idx * 0.04, duration: 0.3 }}
+                        >
+                          <OrderCard
+                            order={order}
+                            onStatusChange={handleStatusChange}
+                          />
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </section>
+          )}
 
-            {/* Orders Grid */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.25 }}
-              >
-                {filteredOrders.length === 0 ? (
-                  <div className="rounded-xl bg-[#111] border border-[#27272a] p-12 text-center">
-                    <p className="text-[#71717a] font-body">
-                      {orders.length === 0
-                        ? "No orders yet. Share your menu link!"
-                        : `No ${activeTab.toLowerCase()} orders.`}
-                    </p>
-                  </div>
+          {/* ANALYTICS SECTION */}
+          {activeSection === "analytics" && (
+            <section className="space-y-6">
+              {/* All-time summary */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
+                  <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">Total Orders</p>
+                  <p className="font-display text-2xl text-[#e4e4e7] mt-1">{analytics.totalOrders}</p>
+                </div>
+                <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
+                  <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">Total Revenue</p>
+                  <p className="font-display text-2xl text-[#FFD600] mt-1">₹{analytics.totalRevenue.toLocaleString("en-IN")}</p>
+                </div>
+                <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
+                  <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">Avg Order</p>
+                  <p className="font-display text-2xl text-[#22C55E] mt-1">₹{analytics.avgOrderValue}</p>
+                </div>
+              </div>
+
+              {/* Top Selling Items */}
+              <div className="rounded-xl bg-[#111] border border-[#27272a] p-5">
+                <h3 className="font-display text-lg text-[#FFD600] tracking-wider mb-4">
+                  TOP SELLING ITEMS
+                </h3>
+                {analytics.topSellers.length === 0 ? (
+                  <p className="text-[#71717a] text-sm">No order data yet</p>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredOrders.map((order, idx) => (
-                      <motion.div
-                        key={order.id}
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: idx * 0.04, duration: 0.3 }}
-                      >
-                        <OrderCard
-                          order={order}
-                          onStatusChange={handleStatusChange}
-                        />
-                      </motion.div>
+                  <div className="flex flex-col gap-3">
+                    {analytics.topSellers.map((item, i) => (
+                      <div key={item.name} className="flex items-center gap-3">
+                        <span className="text-xs text-[#71717a] w-5 text-right font-mono">
+                          #{i + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-sm text-[#e4e4e7] truncate">{item.name}</span>
+                            <span className="text-xs text-[#71717a] font-mono ml-2 flex-shrink-0">
+                              {item.count} sold &middot; ₹{item.revenue.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                          {/* Bar chart */}
+                          <div className="w-full h-2 bg-[#27272a] rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${(item.count / analytics.maxCount) * 100}%` }}
+                              transition={{ duration: 0.6, delay: i * 0.05 }}
+                              className="h-full rounded-full"
+                              style={{
+                                background: i === 0 ? "#FFD600" : i === 1 ? "#22C55E" : i === 2 ? "#3B82F6" : "#8B5CF6",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
                 )}
-              </motion.div>
-            </AnimatePresence>
-          </section>
+              </div>
 
-          {/* Menu Control */}
-          <section className="space-y-4 pb-12">
-            <h2 className="font-display text-2xl text-[#FFD600] tracking-wider">
-              MENU CONTROL
-            </h2>
-
-            <div className="rounded-xl bg-[#111] border border-[#27272a] divide-y divide-[#27272a]">
-              {allMenuItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center justify-between px-4 py-3"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span
-                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        item.type === "veg" ? "bg-[#22C55E]" : "bg-[#E53935]"
-                      }`}
-                    />
-                    <div className="min-w-0">
-                      <p className="text-sm font-body text-[#e4e4e7] truncate">
-                        {item.name}
-                      </p>
-                      <p className="text-xs font-mono text-[#71717a]">
-                        ₹{item.price}
-                      </p>
-                    </div>
+              {/* Order Status & Payment Breakdown */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Order Status */}
+                <div className="rounded-xl bg-[#111] border border-[#27272a] p-5">
+                  <h3 className="font-display text-lg text-[#FFD600] tracking-wider mb-4">
+                    ORDER STATUS
+                  </h3>
+                  <div className="flex flex-col gap-2.5">
+                    {Object.entries(analytics.statusBreakdown).map(([status, count]) => (
+                      <div key={status} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: statusColor[status] || "#71717a" }}
+                          />
+                          <span className="text-sm capitalize text-[#e4e4e7]">{status}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm text-[#a1a1aa]">{count}</span>
+                          <span className="text-xs text-[#71717a]">
+                            ({analytics.totalOrders > 0 ? Math.round((count / analytics.totalOrders) * 100) : 0}%)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-
-                  {/* Toggle */}
-                  <button
-                    onClick={() => handleMenuToggle(item.id)}
-                    className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-colors duration-200 ${
-                      menuAvailability[item.id] !== false
-                        ? "bg-[#22C55E]"
-                        : "bg-[#27272a]"
-                    }`}
-                  >
-                    <span
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
-                        menuAvailability[item.id] !== false
-                          ? "translate-x-5"
-                          : "translate-x-0"
-                      }`}
-                    />
-                  </button>
                 </div>
-              ))}
-            </div>
-          </section>
+
+                {/* Payment Methods */}
+                <div className="rounded-xl bg-[#111] border border-[#27272a] p-5">
+                  <h3 className="font-display text-lg text-[#FFD600] tracking-wider mb-4">
+                    PAYMENT METHODS
+                  </h3>
+                  <div className="flex flex-col gap-2.5">
+                    {Object.entries(analytics.paymentBreakdown).map(([method, count]) => (
+                      <div key={method} className="flex items-center justify-between">
+                        <span className="text-sm text-[#e4e4e7] truncate mr-2">{method}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm text-[#a1a1aa]">{count}</span>
+                          <span className="text-xs text-[#71717a]">
+                            ({analytics.totalOrders > 0 ? Math.round((count / analytics.totalOrders) * 100) : 0}%)
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {Object.keys(analytics.paymentBreakdown).length === 0 && (
+                      <p className="text-[#71717a] text-sm">No data yet</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Today's Hourly Orders */}
+              <div className="rounded-xl bg-[#111] border border-[#27272a] p-5">
+                <h3 className="font-display text-lg text-[#FFD600] tracking-wider mb-4">
+                  TODAY&apos;S ORDERS BY HOUR
+                </h3>
+                {Object.keys(analytics.hourly).length === 0 ? (
+                  <p className="text-[#71717a] text-sm">No orders today yet</p>
+                ) : (
+                  <div className="flex items-end gap-1.5 h-32">
+                    {Array.from({ length: 24 }, (_, h) => {
+                      const count = analytics.hourly[h] || 0;
+                      const maxH = Math.max(...Object.values(analytics.hourly), 1);
+                      const height = count > 0 ? Math.max((count / maxH) * 100, 8) : 0;
+                      return (
+                        <div key={h} className="flex-1 flex flex-col items-center gap-1" title={`${h}:00 — ${count} orders`}>
+                          <div className="w-full flex flex-col items-center justify-end h-24">
+                            {count > 0 && (
+                              <span className="text-[9px] font-mono text-[#a1a1aa] mb-0.5">{count}</span>
+                            )}
+                            <div
+                              className="w-full rounded-t transition-all"
+                              style={{
+                                height: `${height}%`,
+                                backgroundColor: count > 0 ? "#FFD600" : "#27272a",
+                                minHeight: count > 0 ? "4px" : "2px",
+                              }}
+                            />
+                          </div>
+                          <span className="text-[8px] text-[#71717a] font-mono">
+                            {h % 3 === 0 ? `${h}` : ""}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* MENU CONTROL SECTION */}
+          {activeSection === "menu" && (
+            <section className="space-y-4 pb-12">
+              <div className="rounded-xl bg-[#111] border border-[#27272a] divide-y divide-[#27272a]">
+                {allMenuItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span
+                        className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                          item.type === "veg" ? "bg-[#22C55E]" : "bg-[#E53935]"
+                        }`}
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-body text-[#e4e4e7] truncate">
+                          {item.name}
+                        </p>
+                        <p className="text-xs font-mono text-[#71717a]">
+                          ₹{item.price}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => handleMenuToggle(item.id)}
+                      className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-colors duration-200 ${
+                        menuAvailability[item.id] !== false
+                          ? "bg-[#22C55E]"
+                          : "bg-[#27272a]"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${
+                          menuAvailability[item.id] !== false
+                            ? "translate-x-5"
+                            : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </main>
