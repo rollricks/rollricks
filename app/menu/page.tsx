@@ -36,13 +36,13 @@ export default function MenuPage() {
 
   const vegCategories = menuCategories.filter(
     (cat) =>
-      cat.name !== "Non-Veg Specials" &&
+      cat.items[0]?.type === "veg" &&
       cat.name !== "Drinks" &&
       cat.name !== "Desserts"
   );
 
-  const nonVegCategory = menuCategories.find(
-    (cat) => cat.name === "Non-Veg Specials"
+  const nonVegCategories = menuCategories.filter(
+    (cat) => cat.items[0]?.type === "nonveg"
   );
 
   const drinksCategory = menuCategories.find(
@@ -141,30 +141,34 @@ export default function MenuPage() {
               </div>
             )}
 
-            {activeTab === "Non-Veg" && nonVegCategory && (
-              <div>
-                <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-[#E53935]/30">
-                  <div className="w-10 h-10 rounded-xl bg-[#E53935]/10 flex items-center justify-center text-xl">
-                    {nonVegCategory.emoji}
+            {activeTab === "Non-Veg" && (
+              <div className="flex flex-col gap-8">
+                {nonVegCategories.map((category) => (
+                  <div key={category.name}>
+                    <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-[#E53935]/30">
+                      <div className="w-10 h-10 rounded-xl bg-[#E53935]/10 flex items-center justify-center text-xl">
+                        {category.emoji}
+                      </div>
+                      <div>
+                        <h3 className="font-display text-xl text-[#E53935] tracking-wider">
+                          {category.name.toUpperCase()}
+                        </h3>
+                        <p className="text-xs text-[#71717a]">{category.items.length} items</p>
+                      </div>
+                      <div className="ml-auto flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-sm border-2 border-[#E53935] flex items-center justify-center">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#E53935]" />
+                        </span>
+                        <span className="text-[10px] font-bold text-[#E53935] uppercase tracking-wider">NON-VEG</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2.5">
+                      {category.items.map((item) => (
+                        <MenuItem key={item.id} item={item} />
+                      ))}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-display text-xl text-[#E53935] tracking-wider">
-                      {nonVegCategory.name.toUpperCase()}
-                    </h3>
-                    <p className="text-xs text-[#71717a]">{nonVegCategory.items.length} items</p>
-                  </div>
-                  <div className="ml-auto flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-sm border-2 border-[#E53935] flex items-center justify-center">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#E53935]" />
-                    </span>
-                    <span className="text-[10px] font-bold text-[#E53935] uppercase tracking-wider">NON-VEG</span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2.5">
-                  {nonVegCategory.items.map((item) => (
-                    <MenuItem key={item.id} item={item} />
-                  ))}
-                </div>
+                ))}
               </div>
             )}
 

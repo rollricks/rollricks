@@ -72,20 +72,10 @@ export default function MenuItem({ item }: MenuItemProps) {
       </div>
 
       {/* Price */}
-      <div className="flex flex-col items-end flex-shrink-0">
+      <div className="flex-shrink-0">
         <span className="font-display text-lg text-[#FFD600]">
           ₹{item.price}
         </span>
-        {item.originalPrice && (
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-[#71717a] line-through">
-              ₹{item.originalPrice}
-            </span>
-            <span className="text-[9px] font-bold text-[#22C55E]">
-              -₹{item.originalPrice - item.price}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Add / Quantity controls */}

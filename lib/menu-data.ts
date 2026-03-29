@@ -16,7 +16,7 @@ export type MenuCategory = {
   items: MenuItem[];
 };
 
-const ourSpecials: MenuCategory = {
+const ourSpecialsVeg: MenuCategory = {
   name: "Our Specials (Veg)",
   emoji: "⭐",
   items: [
@@ -31,6 +31,15 @@ const ourSpecials: MenuCategory = {
       available: true,
     },
     {
+      id: "spec-crispy-paneer-bread-roll",
+      name: "Crispy Paneer Bread Roll",
+      description: "Paneer stuffed crispy roll with mint chutney",
+      price: 120,
+      category: "Our Specials (Veg)",
+      type: "veg",
+      available: true,
+    },
+    {
       id: "spec-masala-cheese-popper",
       name: "Masala Cheese Popper",
       description: "Crispy poppers loaded with masala cheese filling",
@@ -38,15 +47,6 @@ const ourSpecials: MenuCategory = {
       category: "Our Specials (Veg)",
       type: "veg",
       badge: "Most Ordered",
-      available: true,
-    },
-    {
-      id: "spec-crispy-paneer-bread-roll",
-      name: "Crispy Paneer Bread Roll",
-      description: "Paneer stuffed crispy roll with mint chutney",
-      price: 120,
-      category: "Our Specials (Veg)",
-      type: "veg",
       available: true,
     },
     {
@@ -68,28 +68,34 @@ const ourSpecials: MenuCategory = {
       available: true,
     },
     {
+      id: "spec-veg-cutlet",
+      name: "Veg Cutlet",
+      description: "Classic mixed veg cutlet, crispy outside, soft inside",
+      price: 70,
+      category: "Our Specials (Veg)",
+      type: "veg",
+      available: true,
+    },
+    {
       id: "spec-pizza-sandwich",
       name: "Pizza Sandwich",
       description: "Cheesy pizza-style sandwich with tangy sauce & loaded toppings",
-      price: 121,
-      originalPrice: 130,
+      price: 130,
       category: "Our Specials (Veg)",
       type: "veg",
-      badge: "New",
       available: true,
     },
   ],
 };
 
-const tandoorSpecial: MenuCategory = {
+const tandoorSpecialVeg: MenuCategory = {
   name: "Tandoor Special (Veg)",
   emoji: "🔥",
   items: [
     {
       id: "tand-smokey-paneer-tikka",
       name: "Smokey Paneer Tikka",
-      description:
-        "Real tandoor smoky flavour. Charred paneer, bell peppers, onion",
+      description: "Real tandoor smoky flavour. Charred paneer, bell peppers, onion",
       price: 180,
       category: "Tandoor Special (Veg)",
       type: "veg",
@@ -98,12 +104,21 @@ const tandoorSpecial: MenuCategory = {
     },
     {
       id: "tand-malai-soya-chaap",
-      name: "Malai Tandoori Soya Chaap",
+      name: "Malai Soya Chaap",
       description: "Creamy malai marinated soya chaap, slow grilled",
       price: 180,
       category: "Tandoor Special (Veg)",
       type: "veg",
       badge: "★ Signature",
+      available: true,
+    },
+    {
+      id: "tand-tandoori-soya-chaap",
+      name: "Tandoori Soya Chaap",
+      description: "Smoky tandoori-spiced soya chaap, charred to perfection",
+      price: 170,
+      category: "Tandoor Special (Veg)",
+      type: "veg",
       available: true,
     },
     {
@@ -118,7 +133,7 @@ const tandoorSpecial: MenuCategory = {
   ],
 };
 
-const chineseCorner: MenuCategory = {
+const chineseCornerVeg: MenuCategory = {
   name: "Chinese Corner (Veg)",
   emoji: "🥡",
   items: [
@@ -144,9 +159,17 @@ const chineseCorner: MenuCategory = {
     {
       id: "chi-manchurian-noodles",
       name: "Manchurian Noodles",
-      description:
-        "Hakka noodles tossed with manchurian gravy. Street style",
+      description: "Hakka noodles tossed with manchurian gravy. Street style",
       price: 130,
+      category: "Chinese Corner (Veg)",
+      type: "veg",
+      available: true,
+    },
+    {
+      id: "chi-paneer-noodles",
+      name: "Paneer Noodles",
+      description: "Stir-fried noodles loaded with paneer cubes",
+      price: 140,
       category: "Chinese Corner (Veg)",
       type: "veg",
       available: true,
@@ -154,28 +177,64 @@ const chineseCorner: MenuCategory = {
     {
       id: "chi-hakka-noodles",
       name: "Hakka Noodles",
-      description:
-        "Classic hakka noodles — light, tasty, goes with everything",
+      description: "Classic hakka noodles — light, tasty, goes with everything",
       price: 110,
       category: "Chinese Corner (Veg)",
       type: "veg",
       available: true,
     },
+    {
+      id: "chi-manchurian-fried-rice",
+      name: "Manchurian Fried Rice",
+      description: "Fried rice tossed with manchurian gravy and veggies",
+      price: 130,
+      category: "Chinese Corner (Veg)",
+      type: "veg",
+      available: true,
+    },
+    {
+      id: "chi-paneer-fried-rice",
+      name: "Paneer Fried Rice",
+      description: "Wok-tossed fried rice with paneer and fresh veggies",
+      price: 140,
+      category: "Chinese Corner (Veg)",
+      type: "veg",
+      available: true,
+    },
+    {
+      id: "chi-all-mix",
+      name: "All Mix",
+      description: "Noodles, fried rice, and manchurian — the ultimate combo plate",
+      price: 160,
+      category: "Chinese Corner (Veg)",
+      type: "veg",
+      badge: "Value",
+      available: true,
+    },
   ],
 };
 
-const nonVegSpecials: MenuCategory = {
-  name: "Non-Veg Specials",
-  emoji: "🍗",
+const nonVegTandoor: MenuCategory = {
+  name: "Tandoor Special (Non-Veg)",
+  emoji: "🔥",
   items: [
     {
       id: "nv-malai-chicken-tikka",
       name: "Malai Chicken Tikka",
       description: "Creamy marinated chicken, char-grilled on tandoor",
       price: 220,
-      category: "Non-Veg Specials",
+      category: "Tandoor Special (Non-Veg)",
       type: "nonveg",
       badge: "★ Hero",
+      available: true,
+    },
+    {
+      id: "nv-chicken-tikka-sticks",
+      name: "Chicken Tikka (2 Sticks)",
+      description: "Two sticks of juicy tandoor chicken tikka",
+      price: 200,
+      category: "Tandoor Special (Non-Veg)",
+      type: "nonveg",
       available: true,
     },
     {
@@ -183,55 +242,24 @@ const nonVegSpecials: MenuCategory = {
       name: "Fried Chicken",
       description: "Crispy southern-style fried chicken",
       price: 170,
-      category: "Non-Veg Specials",
+      category: "Tandoor Special (Non-Veg)",
       type: "nonveg",
       badge: "Popular",
       available: true,
     },
-    {
-      id: "nv-chicken-wings",
-      name: "Chicken Wings",
-      description: "Spicy glazed chicken wings",
-      price: 170,
-      category: "Non-Veg Specials",
-      type: "nonveg",
-      available: true,
-    },
-    {
-      id: "nv-egg-roll",
-      name: "Egg Roll",
-      description:
-        "Fresh egg wrapped in soft roti with onion, chutney & masala",
-      price: 100,
-      category: "Non-Veg Specials",
-      type: "nonveg",
-      available: true,
-    },
-    {
-      id: "nv-chicken-roll",
-      name: "Chicken Roll",
-      description: "Tender chicken filling, wrapped with mint chutney",
-      price: 120,
-      category: "Non-Veg Specials",
-      type: "nonveg",
-      available: true,
-    },
-    {
-      id: "nv-double-egg-chicken-roll",
-      name: "Double Egg Chicken Roll",
-      description: "Double egg + chicken filling. Our biggest roll",
-      price: 170,
-      category: "Non-Veg Specials",
-      type: "nonveg",
-      badge: "Value Pack",
-      available: true,
-    },
+  ],
+};
+
+const nonVegChinese: MenuCategory = {
+  name: "Chinese Corner (Non-Veg)",
+  emoji: "🥡",
+  items: [
     {
       id: "nv-chilli-chicken",
       name: "Chilli Chicken",
       description: "Crispy chicken in spicy Indo-Chinese sauce",
       price: 200,
-      category: "Non-Veg Specials",
+      category: "Chinese Corner (Non-Veg)",
       type: "nonveg",
       available: true,
     },
@@ -240,7 +268,76 @@ const nonVegSpecials: MenuCategory = {
       name: "Chicken Hakka Noodles",
       description: "Wok-tossed noodles with tender chicken strips",
       price: 160,
-      category: "Non-Veg Specials",
+      category: "Chinese Corner (Non-Veg)",
+      type: "nonveg",
+      available: true,
+    },
+    {
+      id: "nv-chicken-fried-rice",
+      name: "Chicken Fried Rice",
+      description: "Smoky wok-fried rice with juicy chicken pieces",
+      price: 150,
+      category: "Chinese Corner (Non-Veg)",
+      type: "nonveg",
+      available: true,
+    },
+  ],
+};
+
+const nonVegRolls: MenuCategory = {
+  name: "Roll Corner (Non-Veg)",
+  emoji: "🌯",
+  items: [
+    {
+      id: "nv-egg-roll",
+      name: "Egg Roll",
+      description: "Fresh egg wrapped in soft roti with onion, chutney & masala",
+      price: 100,
+      category: "Roll Corner (Non-Veg)",
+      type: "nonveg",
+      available: true,
+    },
+    {
+      id: "nv-chicken-roll",
+      name: "Chicken Roll",
+      description: "Tender chicken filling, wrapped with mint chutney",
+      price: 120,
+      category: "Roll Corner (Non-Veg)",
+      type: "nonveg",
+      available: true,
+    },
+    {
+      id: "nv-double-egg-chicken-roll",
+      name: "Double Egg Chicken Roll",
+      description: "Double egg + chicken filling. Our biggest roll",
+      price: 170,
+      category: "Roll Corner (Non-Veg)",
+      type: "nonveg",
+      badge: "Value Pack",
+      available: true,
+    },
+  ],
+};
+
+const nonVegSpecials: MenuCategory = {
+  name: "Our Specials (Non-Veg)",
+  emoji: "🍗",
+  items: [
+    {
+      id: "nv-crispy-chicken-cutlet",
+      name: "Crispy Chicken Cutlet",
+      description: "Juicy chicken cutlet, golden fried and crunchy",
+      price: 130,
+      category: "Our Specials (Non-Veg)",
+      type: "nonveg",
+      available: true,
+    },
+    {
+      id: "nv-chicken-wings",
+      name: "Chicken Wings",
+      description: "Spicy glazed chicken wings",
+      price: 170,
+      category: "Our Specials (Non-Veg)",
       type: "nonveg",
       available: true,
     },
@@ -265,7 +362,7 @@ const drinks: MenuCategory = {
       id: "drk-blue-currant-mojito",
       name: "Blue Currant Mojito",
       description: "Bright blue — looks amazing on camera",
-      price: 60,
+      price: 50,
       category: "Drinks",
       type: "veg",
       badge: "★ Refreshing",
@@ -275,7 +372,16 @@ const drinks: MenuCategory = {
       id: "drk-green-mint-mojito",
       name: "Green Mint Mojito",
       description: "Cool and refreshing mint mojito",
-      price: 60,
+      price: 50,
+      category: "Drinks",
+      type: "veg",
+      available: true,
+    },
+    {
+      id: "drk-mint-mojito",
+      name: "Mint Mojito",
+      description: "Classic fresh mint with lime and soda",
+      price: 50,
       category: "Drinks",
       type: "veg",
       available: true,
@@ -285,6 +391,24 @@ const drinks: MenuCategory = {
       name: "Guava Masala Soda",
       description: "Tangy guava with black salt & masala fizz",
       price: 50,
+      category: "Drinks",
+      type: "veg",
+      available: true,
+    },
+    {
+      id: "drk-masala-soda",
+      name: "Masala Soda",
+      description: "Fizzy soda with a punch of spicy masala",
+      price: 30,
+      category: "Drinks",
+      type: "veg",
+      available: true,
+    },
+    {
+      id: "drk-filter-coffee",
+      name: "Filter Coffee",
+      description: "South Indian style hot filter coffee",
+      price: 30,
       category: "Drinks",
       type: "veg",
       available: true,
@@ -300,7 +424,7 @@ const desserts: MenuCategory = {
       id: "des-brownie-sizzler",
       name: "Brownie Sizzler",
       description: "Hot brownie with ice cream on a sizzling plate",
-      price: 141,
+      price: 150,
       category: "Desserts",
       type: "veg",
       available: true,
@@ -309,9 +433,12 @@ const desserts: MenuCategory = {
 };
 
 export const menuCategories: MenuCategory[] = [
-  ourSpecials,
-  tandoorSpecial,
-  chineseCorner,
+  ourSpecialsVeg,
+  tandoorSpecialVeg,
+  chineseCornerVeg,
+  nonVegTandoor,
+  nonVegChinese,
+  nonVegRolls,
   nonVegSpecials,
   drinks,
   desserts,
