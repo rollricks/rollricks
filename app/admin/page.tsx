@@ -70,9 +70,13 @@ export default function AdminPage() {
       return;
     }
 
-    // Try Firebase auth as fallback (email + password)
+    // Try Firebase auth as fallback (email + password) with 5s timeout
     try {
-      await signInWithEmailAndPassword(auth, adminId, password);
+      const authPromise = signInWithEmailAndPassword(auth, adminId, password);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Auth timeout")), 5000)
+      );
+      await Promise.race([authPromise, timeoutPromise]);
       setIsLoggedIn(true);
       setLoggingIn(false);
       return;
