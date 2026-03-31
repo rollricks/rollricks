@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { Bebas_Neue, DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
-import Nav from "@/components/Nav";
-import WhatsAppBtn from "@/components/WhatsAppBtn";
+import LayoutShell from "@/components/LayoutShell";
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -43,9 +42,7 @@ export default function RootLayout({
         className={`${bebasNeue.variable} ${dmSans.variable} ${dmMono.variable} bg-[#09090b] text-[#e4e4e7] font-body min-h-screen`}
       >
         <CartProvider>
-          <Nav />
-          <main>{children}</main>
-          <WhatsAppBtn />
+          <LayoutShell>{children}</LayoutShell>
         </CartProvider>
       </body>
     </html>
