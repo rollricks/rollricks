@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { db, auth } from "@/lib/firebase";
 import {
@@ -13,7 +13,7 @@ import {
   getDocs,
   setDoc,
 } from "firebase/firestore";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, signInAnonymously } from "firebase/auth";
 import { generateStatusWhatsApp } from "@/lib/whatsapp";
 import { allMenuItems } from "@/lib/menu-data";
 import OrderCard from "@/components/OrderCard";
@@ -56,6 +56,41 @@ export default function AdminPage() {
   const [menuAvailability, setMenuAvailability] = useState<
     Record<string, boolean>
   >({});
+  const [newOrderAlert, setNewOrderAlert] = useState(false);
+  const prevOrderCount = useRef(0);
+  const isFirstLoad = useRef(true);
+
+  // Play notification sound when new order arrives
+  const playNotification = useCallback(() => {
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = "sine";
+      gain.gain.value = 0.3;
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.stop(ctx.currentTime + 0.5);
+      // Second beep
+      setTimeout(() => {
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.frequency.value = 1100;
+        osc2.type = "sine";
+        gain2.gain.value = 0.3;
+        osc2.start();
+        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc2.stop(ctx.currentTime + 0.5);
+      }, 200);
+    } catch {
+      // Audio not available
+    }
+  }, []);
 
   // Login handler
   async function handleLogin(e: React.FormEvent) {
@@ -66,14 +101,16 @@ export default function AdminPage() {
     const envAdminId = process.env.NEXT_PUBLIC_ADMIN_ID;
     const envAdminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
 
-    if (envAdminId && envAdminPassword && adminId.trim() === envAdminId && password === envAdminPassword) {
-      setIsLoggedIn(true);
-      setLoggingIn(false);
-      return;
-    }
+    const envMatch =
+      envAdminId &&
+      envAdminPassword &&
+      adminId.trim() === envAdminId &&
+      password === envAdminPassword;
 
+    // Try Firebase Auth sign-in to establish auth context for Firestore queries
     try {
-      const authPromise = signInWithEmailAndPassword(auth, adminId, password);
+      // Try email/password auth (adminId might be an email)
+      const authPromise = signInWithEmailAndPassword(auth, adminId.trim(), password);
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error("Auth timeout")), 5000)
       );
@@ -82,7 +119,20 @@ export default function AdminPage() {
       setLoggingIn(false);
       return;
     } catch {
-      // Firebase auth failed
+      // Firebase email auth failed — try env var check + anonymous auth
+    }
+
+    if (envMatch) {
+      // Env var credentials matched — try anonymous sign-in for Firestore access
+      try {
+        await signInAnonymously(auth);
+      } catch {
+        // Anonymous auth not available — Firestore may still work if rules allow it
+        console.warn("Anonymous auth failed. Firestore access may be limited.");
+      }
+      setIsLoggedIn(true);
+      setLoggingIn(false);
+      return;
     }
 
     setLoginError("Invalid Admin ID or Password.");
@@ -95,34 +145,67 @@ export default function AdminPage() {
 
     let unsubscribe: () => void;
 
+    function parseOrderDoc(d: import("firebase/firestore").QueryDocumentSnapshot): Order {
+      const data = d.data();
+      return {
+        id: d.id,
+        orderId: data.orderId ?? d.id.slice(0, 8).toUpperCase(),
+        customerName: data.customerName ?? data.name ?? "Customer",
+        phone: data.phone ?? "",
+        items: data.items ?? [],
+        total: data.total ?? 0,
+        pickupTime: data.pickupTime ?? "ASAP",
+        paymentMethod: data.paymentMethod ?? "Cash",
+        status: data.status ?? "new",
+        createdAt: data.createdAt?.toDate?.()
+          ? data.createdAt.toDate().toISOString()
+          : data.createdAt ?? new Date().toISOString(),
+      };
+    }
+
     try {
       const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
       unsubscribe = onSnapshot(
         q,
         (snapshot) => {
-          const ordersList: Order[] = snapshot.docs.map((d) => {
-            const data = d.data();
-            return {
-              id: d.id,
-              orderId: data.orderId ?? d.id.slice(0, 8).toUpperCase(),
-              customerName: data.customerName ?? data.name ?? "Customer",
-              phone: data.phone ?? "",
-              items: data.items ?? [],
-              total: data.total ?? 0,
-              pickupTime: data.pickupTime ?? "ASAP",
-              paymentMethod: data.paymentMethod ?? "Cash",
-              status: data.status ?? "new",
-              createdAt: data.createdAt?.toDate?.()
-                ? data.createdAt.toDate().toISOString()
-                : data.createdAt ?? new Date().toISOString(),
-            };
-          });
+          const ordersList = snapshot.docs.map(parseOrderDoc);
+          // Check for new orders (not on first load)
+          const newCount = ordersList.filter((o) => o.status === "new").length;
+          if (!isFirstLoad.current && newCount > prevOrderCount.current) {
+            playNotification();
+            setNewOrderAlert(true);
+            setTimeout(() => setNewOrderAlert(false), 3000);
+          }
+          prevOrderCount.current = newCount;
+          isFirstLoad.current = false;
           setOrders(ordersList);
+          setFirebaseError(null);
         },
         (err) => {
           console.error("Orders listener error:", err);
-          setFirebaseError(
-            "Firebase not configured. Please add your Firebase credentials to .env.local"
+          // Fallback: try without orderBy in case of missing index
+          const fallbackQ = query(collection(db, "orders"));
+          unsubscribe = onSnapshot(
+            fallbackQ,
+            (snapshot) => {
+              const ordersList = snapshot.docs.map(parseOrderDoc);
+              ordersList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+              setOrders(ordersList);
+              setFirebaseError(null);
+            },
+            (fallbackErr) => {
+              console.error("Orders fallback error:", fallbackErr);
+              const code = (fallbackErr as { code?: string }).code;
+              if (code === "permission-denied") {
+                setFirebaseError(
+                  "Permission denied. Please log in with your Firebase admin email and password."
+                );
+              } else {
+                setFirebaseError(
+                  "Could not load orders. Check Firebase credentials in .env.local"
+                );
+              }
+            }
           );
         }
       );
@@ -260,11 +343,15 @@ export default function AdminPage() {
         status: newStatus,
       });
 
-      if (newStatus === "confirmed" || newStatus === "ready") {
+      if (newStatus === "confirmed" || newStatus === "ready" || newStatus === "done") {
+        const statusLabel =
+          newStatus === "confirmed" ? "Confirmed" :
+          newStatus === "ready" ? "Ready for Pickup" : "Done";
         const whatsappUrl = generateStatusWhatsApp(
           orderId,
-          newStatus === "confirmed" ? "Confirmed" : "Ready for Pickup",
-          orderDoc.customerName
+          statusLabel,
+          orderDoc.customerName,
+          orderDoc.phone
         );
         window.open(whatsappUrl, "_blank");
       }
@@ -390,6 +477,20 @@ export default function AdminPage() {
           ))}
         </div>
       </div>
+
+      {/* New order alert */}
+      <AnimatePresence>
+        {newOrderAlert && (
+          <motion.div
+            initial={{ y: -60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -60, opacity: 0 }}
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-6 py-3 rounded-xl bg-[#22C55E] text-white font-bold text-sm shadow-lg shadow-[#22C55E]/30"
+          >
+            New Order Received!
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {firebaseError ? (
         <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">

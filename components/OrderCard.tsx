@@ -72,14 +72,13 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
   const whatsappLink = `https://wa.me/91${order.phone.replace(/\D/g, "").slice(-10)}`;
 
   const formattedTime = (() => {
-    try {
-      return new Date(order.createdAt).toLocaleTimeString("en-IN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return order.createdAt;
-    }
+    if (!order.createdAt) return "Just now";
+    const d = new Date(order.createdAt);
+    if (isNaN(d.getTime())) return "Just now";
+    return d.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   })();
 
   return (
@@ -128,7 +127,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
               {item.quantity}x {item.name}
             </span>
             <span className="font-mono text-[#71717a]">
-              ₹{item.price * item.quantity}
+              ₹{item.price}
             </span>
           </li>
         ))}

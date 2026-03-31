@@ -14,25 +14,15 @@ const stepLabels = ["Cart Review", "Your Details", "Confirm"];
 
 function generatePickupSlots(): string[] {
   const slots: string[] = [];
-  const now = new Date();
-  // Round up to next 15 min
-  const minutes = now.getMinutes();
-  const roundedMinutes = Math.ceil(minutes / 15) * 15;
-  const start = new Date(now);
-  start.setMinutes(roundedMinutes, 0, 0);
-  if (roundedMinutes >= 60) {
-    start.setHours(start.getHours() + 1);
-    start.setMinutes(0, 0, 0);
-  }
-
-  for (let i = 0; i < 8; i++) {
-    const slot = new Date(start.getTime() + i * 15 * 60 * 1000);
-    const hours = slot.getHours();
-    const mins = slot.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const h = hours % 12 || 12;
-    const m = mins.toString().padStart(2, "0");
-    slots.push(`${h}:${m} ${ampm}`);
+  // Fixed slots from 6:00 PM to 11:30 PM in 15-min intervals
+  for (let hour = 18; hour <= 23; hour++) {
+    for (const min of [0, 15, 30, 45]) {
+      if (hour === 23 && min > 30) break;
+      const ampm = hour >= 12 ? "PM" : "AM";
+      const h = hour % 12 || 12;
+      const m = min.toString().padStart(2, "0");
+      slots.push(`${h}:${m} ${ampm}`);
+    }
   }
   return slots;
 }
@@ -77,7 +67,7 @@ export default function CheckoutPage() {
     setPlacing(true);
 
     try {
-      const id = "RR" + Date.now().toString().slice(-4);
+      const id = "RR" + Date.now().toString(36).toUpperCase().slice(-6);
       setOrderId(id);
 
       const orderItems = items.map((item) => ({
@@ -96,12 +86,23 @@ export default function CheckoutPage() {
         paymentMethod,
       };
 
-      // Try saving to Firebase (with 5s timeout)
+      // Save to Firebase
       try {
         const { collection, addDoc, serverTimestamp } = await import(
           "firebase/firestore"
         );
-        const { db } = await import("@/lib/firebase");
+        const { db, auth } = await import("@/lib/firebase");
+        const { signInAnonymously } = await import("firebase/auth");
+
+        // Ensure we have auth context for Firestore writes
+        if (!auth.currentUser) {
+          try {
+            await signInAnonymously(auth);
+          } catch {
+            // Continue without auth — may still work if rules allow it
+          }
+        }
+
         const firebasePromise = addDoc(collection(db, "orders"), {
           orderId: id,
           customerName: name.trim(),
@@ -114,11 +115,12 @@ export default function CheckoutPage() {
           createdAt: serverTimestamp(),
         });
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Firebase timeout")), 5000)
+          setTimeout(() => reject(new Error("Firebase timeout")), 8000)
         );
         await Promise.race([firebasePromise, timeoutPromise]);
-      } catch {
-        console.warn("Firebase save failed — proceeding with WhatsApp order");
+      } catch (firebaseErr) {
+        console.error("Firebase save failed:", firebaseErr);
+        // Order will still proceed via WhatsApp but won't appear in admin dashboard
       }
 
       // If Pay Online, show QR first

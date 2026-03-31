@@ -9,7 +9,6 @@ import {
   query,
   where,
   orderBy,
-  limit,
   onSnapshot,
 } from "firebase/firestore";
 import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
@@ -37,15 +36,16 @@ interface OrderData {
 export default function TrackPage() {
   const [phone, setPhone] = useState("");
   const [searching, setSearching] = useState(false);
-  const [order, setOrder] = useState<OrderData | null>(null);
+  const [orders, setOrders] = useState<OrderData[]>([]);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
   useEffect(() => {
     if (!searching || phone.length !== 10) return;
 
-    setOrder(null);
+    setOrders([]);
     setNotFound(false);
     setError(null);
 
@@ -55,8 +55,7 @@ export default function TrackPage() {
       const q = query(
         collection(db, "orders"),
         where("phone", "==", phone),
-        orderBy("createdAt", "desc"),
-        limit(1)
+        orderBy("createdAt", "desc")
       );
 
       unsubscribe = onSnapshot(
@@ -66,24 +65,29 @@ export default function TrackPage() {
           setHasSearched(true);
           if (snapshot.empty) {
             setNotFound(true);
-            setOrder(null);
+            setOrders([]);
           } else {
-            const doc = snapshot.docs[0];
-            const data = doc.data();
-            setOrder({
-              id: doc.id,
-              orderId: data.orderId ?? doc.id.slice(0, 8).toUpperCase(),
-              customerName: data.customerName ?? data.name ?? "Customer",
-              phone: data.phone ?? phone,
-              items: data.items ?? [],
-              total: data.total ?? 0,
-              pickupTime: data.pickupTime ?? "ASAP",
-              paymentMethod: data.paymentMethod ?? "Cash",
-              status: data.status ?? "new",
-              createdAt: data.createdAt?.toDate?.()
-                ? data.createdAt.toDate().toISOString()
-                : data.createdAt ?? "",
+            const ordersList = snapshot.docs.map((doc) => {
+              const data = doc.data();
+              return {
+                id: doc.id,
+                orderId: data.orderId ?? doc.id.slice(0, 8).toUpperCase(),
+                customerName: data.customerName ?? data.name ?? "Customer",
+                phone: data.phone ?? phone,
+                items: data.items ?? [],
+                total: data.total ?? 0,
+                pickupTime: data.pickupTime ?? "ASAP",
+                paymentMethod: data.paymentMethod ?? "Cash",
+                status: data.status ?? "new",
+                createdAt: data.createdAt?.toDate?.()
+                  ? data.createdAt.toDate().toISOString()
+                  : data.createdAt ?? new Date().toISOString(),
+              } as OrderData;
             });
+            setOrders(ordersList);
+            // Auto-expand the latest active order
+            const activeOrder = ordersList.find((o) => o.status !== "done");
+            setExpandedOrder(activeOrder?.id ?? ordersList[0]?.id ?? null);
             setNotFound(false);
           }
         },
@@ -91,8 +95,45 @@ export default function TrackPage() {
           console.error("Firestore error:", err);
           setSearching(false);
           setHasSearched(true);
-          setError(
-            "Tracking not available yet. Contact us on WhatsApp!"
+          // Fallback: try without orderBy
+          const fallbackQ = query(
+            collection(db, "orders"),
+            where("phone", "==", phone)
+          );
+          unsubscribe = onSnapshot(
+            fallbackQ,
+            (snapshot) => {
+              if (snapshot.empty) {
+                setNotFound(true);
+                setOrders([]);
+              } else {
+                const ordersList = snapshot.docs.map((doc) => {
+                  const data = doc.data();
+                  return {
+                    id: doc.id,
+                    orderId: data.orderId ?? doc.id.slice(0, 8).toUpperCase(),
+                    customerName: data.customerName ?? data.name ?? "Customer",
+                    phone: data.phone ?? phone,
+                    items: data.items ?? [],
+                    total: data.total ?? 0,
+                    pickupTime: data.pickupTime ?? "ASAP",
+                    paymentMethod: data.paymentMethod ?? "Cash",
+                    status: data.status ?? "new",
+                    createdAt: data.createdAt?.toDate?.()
+                      ? data.createdAt.toDate().toISOString()
+                      : data.createdAt ?? "",
+                  } as OrderData;
+                });
+                ordersList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                setOrders(ordersList);
+                const activeOrder = ordersList.find((o) => o.status !== "done");
+                setExpandedOrder(activeOrder?.id ?? ordersList[0]?.id ?? null);
+                setNotFound(false);
+              }
+            },
+            () => {
+              setError("Tracking not available yet. Contact us on WhatsApp!");
+            }
           );
         }
       );
@@ -114,6 +155,37 @@ export default function TrackPage() {
     setSearching(true);
   }
 
+  const statusLabel: Record<string, string> = {
+    new: "Received",
+    confirmed: "Confirmed",
+    preparing: "Preparing",
+    ready: "Ready for Pickup",
+    done: "Completed",
+  };
+
+  const statusColor: Record<string, string> = {
+    new: "#FFD600",
+    confirmed: "#3B82F6",
+    preparing: "#8B5CF6",
+    ready: "#22C55E",
+    done: "#71717a",
+  };
+
+  function formatTime(iso: string) {
+    if (!iso) return "Just now";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "Just now";
+    return d.toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  const activeOrders = orders.filter((o) => o.status !== "done");
+  const pastOrders = orders.filter((o) => o.status === "done");
+
   return (
     <main className="min-h-screen bg-[#09090b] text-[#e4e4e7] px-4 py-12">
       <div className="max-w-lg mx-auto space-y-8">
@@ -128,7 +200,7 @@ export default function TrackPage() {
             TRACK ORDER
           </h1>
           <p className="text-[#a1a1aa] mt-2 font-body">
-            Enter your phone number to find your order
+            Enter your phone number to find your orders
           </p>
         </motion.div>
 
@@ -153,7 +225,7 @@ export default function TrackPage() {
                 const val = e.target.value.replace(/\D/g, "").slice(0, 10);
                 setPhone(val);
               }}
-              placeholder="9876543210"
+              placeholder="Your 10-digit number"
               className="w-full pl-14 pr-4 py-4 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-lg font-body text-[#e4e4e7] placeholder:text-[#52525b] transition-colors"
             />
           </div>
@@ -162,7 +234,7 @@ export default function TrackPage() {
             disabled={phone.length !== 10 || searching}
             className="w-full py-4 rounded-xl bg-[#FFD600] text-[#09090b] font-bold text-lg font-body active:scale-[0.97] transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110"
           >
-            {searching ? "Searching..." : "Find My Order"}
+            {searching ? "Searching..." : "Find My Orders"}
           </button>
         </motion.form>
 
@@ -182,71 +254,189 @@ export default function TrackPage() {
             </motion.div>
           )}
 
-          {/* Order Found */}
-          {!searching && order && (
+          {/* Orders Found */}
+          {!searching && orders.length > 0 && (
             <motion.div
-              key="order"
+              key="orders"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4 }}
               className="space-y-6"
             >
-              {/* Track Status */}
-              <div className="rounded-xl bg-[#111] border border-[#27272a] p-5">
-                <TrackStatus status={order.status} />
-              </div>
-
-              {/* Order Details */}
-              <div className="rounded-xl bg-[#111] border border-[#27272a] p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="font-display text-2xl text-[#FFD600] tracking-wider">
-                    ORDER DETAILS
+              {/* Active Orders */}
+              {activeOrders.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="font-display text-lg text-[#FFD600] tracking-wider">
+                    ACTIVE ORDERS ({activeOrders.length})
                   </h2>
-                  <span className="font-mono text-sm text-[#a1a1aa]">
-                    #{order.orderId}
-                  </span>
-                </div>
-
-                {/* Items List */}
-                <ul className="space-y-2 border-t border-[#27272a] pt-3">
-                  {order.items.map((item, idx) => (
-                    <li
-                      key={idx}
-                      className="flex items-center justify-between text-sm font-body"
+                  {activeOrders.map((order) => (
+                    <motion.div
+                      key={order.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="rounded-xl bg-[#111] border border-[#27272a] overflow-hidden"
                     >
-                      <span className="text-[#e4e4e7]">
-                        {item.quantity}x {item.name}
-                      </span>
-                      <span className="font-mono text-[#a1a1aa]">
-                        ₹{item.price * item.quantity}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                      {/* Order header - always visible */}
+                      <button
+                        onClick={() =>
+                          setExpandedOrder(
+                            expandedOrder === order.id ? null : order.id
+                          )
+                        }
+                        className="w-full flex items-center justify-between px-4 py-3 text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-sm text-[#FFD600] font-bold">
+                            #{order.orderId}
+                          </span>
+                          <span
+                            className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                            style={{
+                              backgroundColor: `${statusColor[order.status]}15`,
+                              color: statusColor[order.status],
+                            }}
+                          >
+                            {statusLabel[order.status]}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-display text-lg text-[#FFD600]">
+                            ₹{order.total}
+                          </span>
+                          <span className="text-[#71717a] text-xs">
+                            {expandedOrder === order.id ? "▲" : "▼"}
+                          </span>
+                        </div>
+                      </button>
 
-                {/* Summary */}
-                <div className="border-t border-[#27272a] pt-3 space-y-2">
-                  <div className="flex justify-between text-sm font-body">
-                    <span className="text-[#71717a]">Pickup Time</span>
-                    <span className="text-[#e4e4e7]">{order.pickupTime}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-body">
-                    <span className="text-[#71717a]">Payment</span>
-                    <span className="text-[#e4e4e7]">
-                      {order.paymentMethod}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center pt-2 border-t border-[#27272a]">
-                    <span className="text-[#71717a] text-sm font-body">
-                      Total
-                    </span>
-                    <span className="font-display text-2xl text-[#FFD600]">
-                      ₹{order.total}
-                    </span>
-                  </div>
+                      {/* Expanded details */}
+                      <AnimatePresence>
+                        {expandedOrder === order.id && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-4 pb-4 space-y-4 border-t border-[#27272a]">
+                              {/* Status tracker */}
+                              <div className="pt-4">
+                                <TrackStatus status={order.status} />
+                              </div>
+
+                              {/* Items */}
+                              <ul className="space-y-1.5 pt-2">
+                                {order.items.map((item, idx) => (
+                                  <li
+                                    key={idx}
+                                    className="flex items-center justify-between text-sm font-body"
+                                  >
+                                    <span className="text-[#e4e4e7]">
+                                      {item.quantity}x {item.name}
+                                    </span>
+                                    <span className="font-mono text-[#a1a1aa]">
+                                      ₹{item.price}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+
+                              {/* Meta */}
+                              <div className="grid grid-cols-2 gap-2 text-xs border-t border-[#27272a] pt-3">
+                                <div>
+                                  <span className="text-[#71717a]">Pickup: </span>
+                                  <span className="text-[#e4e4e7]">{order.pickupTime}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[#71717a]">Payment: </span>
+                                  <span className="text-[#e4e4e7]">{order.paymentMethod}</span>
+                                </div>
+                                <div>
+                                  <span className="text-[#71717a]">Placed: </span>
+                                  <span className="text-[#e4e4e7]">{formatTime(order.createdAt)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  ))}
                 </div>
-              </div>
+              )}
+
+              {/* Past Orders */}
+              {pastOrders.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="font-display text-sm text-[#71717a] tracking-wider uppercase">
+                    Past Orders ({pastOrders.length})
+                  </h2>
+                  {pastOrders.map((order) => (
+                    <motion.div
+                      key={order.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="rounded-xl bg-[#111] border border-[#27272a] overflow-hidden"
+                    >
+                      <button
+                        onClick={() =>
+                          setExpandedOrder(
+                            expandedOrder === order.id ? null : order.id
+                          )
+                        }
+                        className="w-full flex items-center justify-between px-4 py-3 text-left opacity-60"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="font-mono text-sm text-[#a1a1aa]">
+                            #{order.orderId}
+                          </span>
+                          <span className="text-[10px] text-[#71717a]">
+                            {formatTime(order.createdAt)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm text-[#71717a]">
+                            ₹{order.total}
+                          </span>
+                          <span className="text-[10px] text-[#22C55E]">Done</span>
+                        </div>
+                      </button>
+
+                      <AnimatePresence>
+                        {expandedOrder === order.id && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-4 pb-4 border-t border-[#27272a]">
+                              <ul className="space-y-1.5 pt-3">
+                                {order.items.map((item, idx) => (
+                                  <li
+                                    key={idx}
+                                    className="flex items-center justify-between text-sm font-body text-[#71717a]"
+                                  >
+                                    <span>
+                                      {item.quantity}x {item.name}
+                                    </span>
+                                    <span className="font-mono">
+                                      ₹{item.price * item.quantity}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
 
               <p className="text-center text-xs text-[#52525b] font-body">
                 This page updates in real-time. No need to refresh.
@@ -265,7 +455,7 @@ export default function TrackPage() {
             >
               <div className="text-5xl">🤷</div>
               <p className="text-[#a1a1aa] font-body text-lg">
-                No order found for this number
+                No orders found for this number
               </p>
               <Link
                 href="/menu"
