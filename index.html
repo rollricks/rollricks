@@ -118,21 +118,20 @@
   <div class="logo">ROLLRICKS</div>
   <div class="tagline">// 10 SECOND CHALLENGE //</div>
   <div class="subtitle">
-    The timer is <strong style="color:var(--danger)">hidden</strong>. Trust your gut.<br>
-    Stop at exactly <strong style="color:var(--neon)">10.00s</strong> to win <strong style="color:var(--gold)">50% OFF!</strong>
+    Start the timer and stop it at exactly <strong style="color:var(--neon)">10.00s</strong><br>
+    to win <strong style="color:var(--gold)">50% OFF!</strong>
   </div>
   <button class="btn big" id="startBtn" onclick="initGame()">START</button>
 </div>
 
 <!-- GAME SCREEN -->
 <div id="game" class="screen">
-  <div class="hint" id="hint" style="margin-bottom:10px">Feel the rhythm... stop at 10 seconds!</div>
+  <div class="timer-label" style="font-size:clamp(.8rem,2.5vw,1rem);color:#666;letter-spacing:2px">ELAPSED TIME</div>
   <div class="timer-wrap">
-    <div class="pulse-ring" id="pulseRing">
-      <div class="inner-text" id="pulseText">GO</div>
-    </div>
+    <div class="timer" id="timer" style="font-size:clamp(3.5rem,15vw,7rem);font-weight:900;letter-spacing:2px;text-shadow:var(--neon-glow);font-variant-numeric:tabular-nums;min-width:280px;transition:color .1s">0.00</div>
   </div>
-  <div class="elapsed-hint" id="elapsedHint">Timer running...</div>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="hint" id="hint" style="margin-top:15px">Tap STOP at 10.00 seconds!</div>
   <div style="margin-top:30px">
     <button class="btn stop big" id="stopBtn" onclick="stopGame()">STOP</button>
   </div>
@@ -275,55 +274,55 @@ function initGame() {
 function startGame() {
   showScreen('game');
 
-  const ring = document.getElementById('pulseRing');
-  const pulseText = document.getElementById('pulseText');
+  const timerEl = document.getElementById('timer');
+  const progressEl = document.getElementById('progress');
   const hintEl = document.getElementById('hint');
-  const elHint = document.getElementById('elapsedHint');
 
-  ring.className = 'pulse-ring';
-  pulseText.textContent = 'GO';
-  hintEl.textContent = 'Feel the rhythm... stop at 10 seconds!';
-  elHint.textContent = 'Timer running...';
+  timerEl.style.color = '';
+  timerEl.style.textShadow = '';
+  timerEl.textContent = '0.00';
+  progressEl.className = 'progress-fill';
+  progressEl.style.width = '0%';
+  hintEl.textContent = 'Tap STOP at 10.00 seconds!';
 
   G.start = _perfNow();
   G.running = true;
   G.elapsed = 0;
 
-  let phase = 0; // 0=early, 1=hot zone, 2=danger
+  let lastBeepSec = -1;
 
   function tick() {
     if (!G.running) return;
     G.elapsed = (_perfNow() - G.start) / 1000;
 
-    // Vague elapsed hints (no exact numbers!)
-    if (G.elapsed < 5) {
-      elHint.textContent = 'Keep going...';
-    } else if (G.elapsed < 8) {
-      elHint.textContent = 'Getting there...';
-    } else if (G.elapsed < 9) {
-      elHint.textContent = 'Almost...';
-    } else if (G.elapsed < 9.5) {
-      elHint.textContent = 'Get ready...!';
-    } else if (G.elapsed < 10.5) {
-      elHint.textContent = 'NOW!';
-    } else if (G.elapsed < 12) {
-      elHint.textContent = 'You might be late...';
-    } else {
-      elHint.textContent = 'Way too long!';
-    }
+    // Show actual timer
+    timerEl.textContent = G.elapsed.toFixed(2);
 
-    // Phase transitions with effects
-    if (G.elapsed >= 8.5 && G.elapsed <= 11 && phase < 1) {
-      phase = 1;
-      ring.className = 'pulse-ring hot';
-      pulseText.textContent = '!';
-      hintEl.textContent = 'NOW! Trust your instinct!';
-      beep(600, 0.05, 'sine', 0.08);
-    } else if (G.elapsed > 11 && phase < 2) {
-      phase = 2;
-      ring.className = 'pulse-ring danger';
-      pulseText.textContent = '...';
-      hintEl.textContent = 'Too far! Stop!';
+    // Progress bar
+    const pct = Math.min((G.elapsed / 15) * 100, 100);
+    progressEl.style.width = pct + '%';
+
+    // Color & hint changes
+    if (G.elapsed >= 9.5 && G.elapsed <= 10.5) {
+      timerEl.style.color = 'var(--gold)';
+      timerEl.style.textShadow = '0 0 10px var(--gold),0 0 20px var(--gold),0 0 40px var(--gold)';
+      progressEl.className = 'progress-fill hot';
+      hintEl.textContent = 'NOW! NOW! NOW!';
+      const sec = Math.floor(G.elapsed * 2) / 2;
+      if (sec !== lastBeepSec) {
+        lastBeepSec = sec;
+        beep(1200, 0.05, 'sine', 0.1);
+        vibrate(30);
+      }
+    } else if (G.elapsed > 10.5) {
+      timerEl.style.color = 'var(--danger)';
+      timerEl.style.textShadow = '0 0 10px var(--danger),0 0 20px var(--danger)';
+      progressEl.className = 'progress-fill over';
+      hintEl.textContent = 'Too far! Stop now!';
+    } else {
+      timerEl.style.color = '';
+      timerEl.style.textShadow = 'var(--neon-glow)';
+      progressEl.className = 'progress-fill';
     }
 
     // Auto-stop at 20s
