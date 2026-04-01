@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>RollRicks - 10 Second Challenge</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  @font-face{font-family:'Digital';src:url('') format('truetype')}
+  :root{--neon:#00ff41;--neon-dim:#00cc33;--neon-glow:0 0 10px #00ff41,0 0 20px #00ff41,0 0 40px #00ff41;--bg:#0a0a0a;--card:#111;--danger:#ff0040;--gold:#ffd700;--orange:#ff6600}
+  html,body{height:100%;overflow:hidden;font-family:'Courier New',monospace;background:var(--bg);color:var(--neon);touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+
+  /* Scanline effect */
+  body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,.03) 2px,rgba(0,255,65,.03) 4px);pointer-events:none;z-index:999}
+
+  .screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;width:100vw;padding:20px;text-align:center;position:absolute;inset:0}
+  .screen.active{display:flex}
+
+  /* ── INTRO SCREEN ── */
+  .logo{font-size:clamp(2.5rem,8vw,4.5rem);font-weight:900;letter-spacing:4px;text-shadow:var(--neon-glow);margin-bottom:8px;animation:flicker 3s infinite}
+  .tagline{font-size:clamp(.9rem,3vw,1.2rem);color:var(--neon-dim);margin-bottom:40px;opacity:.8}
+  .subtitle{font-size:clamp(.75rem,2.5vw,1rem);color:#888;margin-bottom:30px;line-height:1.6}
+
+  .btn{border:2px solid var(--neon);background:transparent;color:var(--neon);font-family:inherit;font-size:clamp(1.2rem,4vw,1.8rem);font-weight:700;padding:18px 60px;border-radius:8px;cursor:pointer;text-transform:uppercase;letter-spacing:3px;transition:all .2s;position:relative;overflow:hidden}
+  .btn:active{transform:scale(.95)}
+  .btn::before{content:'';position:absolute;inset:0;background:var(--neon);opacity:0;transition:opacity .2s}
+  .btn:hover::before,.btn:active::before{opacity:.1}
+  .btn.big{padding:24px 80px;font-size:clamp(1.5rem,5vw,2.2rem);border-width:3px;animation:pulse-border 2s infinite}
+  .btn.stop{border-color:var(--danger);color:var(--danger);animation:pulse-stop 0.5s infinite}
+  .btn.stop::before{background:var(--danger)}
+  .btn:disabled{opacity:.3;pointer-events:none}
+
+  /* ── GAME SCREEN ── */
+  .timer-wrap{margin:30px 0}
+  .timer{font-size:clamp(3.5rem,15vw,7rem);font-weight:900;letter-spacing:2px;text-shadow:var(--neon-glow);font-variant-numeric:tabular-nums;min-width:280px;transition:color .1s}
+  .timer.hot{color:var(--gold);text-shadow:0 0 10px var(--gold),0 0 20px var(--gold),0 0 40px var(--gold)}
+  .timer.danger{color:var(--danger);text-shadow:0 0 10px var(--danger),0 0 20px var(--danger)}
+  .timer-label{font-size:clamp(.8rem,2.5vw,1rem);color:#666;margin-top:8px;letter-spacing:2px}
+  .progress-bar{width:80%;max-width:350px;height:6px;background:#222;border-radius:3px;margin-top:20px;overflow:hidden}
+  .progress-fill{height:100%;background:var(--neon);border-radius:3px;transition:width .05s linear,background .3s}
+  .progress-fill.hot{background:var(--gold)}
+  .progress-fill.over{background:var(--danger)}
+  .hint{color:#555;font-size:.8rem;margin-top:15px}
+
+  /* ── RESULT SCREEN ── */
+  .result-icon{font-size:clamp(3rem,12vw,5rem);margin-bottom:15px}
+  .result-msg{font-size:clamp(1.3rem,5vw,2rem);font-weight:900;margin-bottom:10px;line-height:1.3}
+  .result-discount{font-size:clamp(2rem,8vw,3.5rem);font-weight:900;margin:15px 0;padding:15px 30px;border:3px solid;border-radius:12px;animation:pulse-border 1.5s infinite}
+  .result-discount.gold{color:var(--gold);border-color:var(--gold);text-shadow:0 0 10px var(--gold),0 0 20px var(--gold)}
+  .result-discount.orange{color:var(--orange);border-color:var(--orange);text-shadow:0 0 10px var(--orange)}
+  .result-discount.neon{color:var(--neon);border-color:var(--neon);text-shadow:var(--neon-glow)}
+  .result-time{font-size:clamp(1rem,3vw,1.3rem);color:#888;margin-bottom:25px}
+  .result-claim{font-size:clamp(.8rem,2.5vw,1rem);color:#aaa;background:#1a1a1a;padding:12px 20px;border-radius:8px;margin:15px 0;border:1px solid #333;line-height:1.5}
+  .cooldown-msg{color:var(--danger);font-size:clamp(.85rem,2.5vw,1rem);margin-top:15px;min-height:24px}
+
+  /* ── ALMOST-WIN OVERLAY ── */
+  .almost-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:none;align-items:center;justify-content:center;z-index:100;flex-direction:column}
+  .almost-overlay.show{display:flex}
+  .almost-text{font-size:clamp(1.5rem,6vw,2.5rem);font-weight:900;animation:shake .4s ease-in-out}
+  .almost-sub{font-size:clamp(.9rem,3vw,1.2rem);color:#888;margin-top:10px}
+
+  /* ── PARTICLES ── */
+  .particles{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+  .particle{position:absolute;border-radius:50%;animation:float-up 1.5s ease-out forwards}
+
+  /* ── CONFETTI ── */
+  .confetti-container{position:fixed;inset:0;pointer-events:none;z-index:50;overflow:hidden}
+  .confetti{position:absolute;width:10px;height:10px;top:-10px;animation:confetti-fall 3s ease-in forwards}
+
+  /* ── ANIMATIONS ── */
+  @keyframes flicker{0%,95%,100%{opacity:1}96%,98%{opacity:.6}97%{opacity:.3}}
+  @keyframes pulse-border{0%,100%{box-shadow:0 0 5px currentColor}50%{box-shadow:0 0 20px currentColor,0 0 40px currentColor}}
+  @keyframes pulse-stop{0%,100%{box-shadow:0 0 5px var(--danger)}50%{box-shadow:0 0 25px var(--danger),0 0 50px var(--danger)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-15px)}40%{transform:translateX(15px)}60%{transform:translateX(-10px)}80%{transform:translateX(10px)}}
+  @keyframes float-up{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-200px) scale(0)}}
+  @keyframes confetti-fall{0%{transform:translateY(0) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+  @keyframes slide-up{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes zoom-in{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+
+  .anim-slide{animation:slide-up .5s ease-out both}
+  .anim-zoom{animation:zoom-in .4s ease-out both}
+  .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}.d5{animation-delay:.5s}.d6{animation-delay:.6s}
+</style>
+</head>
+<body>
+
+<!-- ═══════ INTRO SCREEN ═══════ -->
+<div id="intro" class="screen active">
+  <div class="logo">ROLLRICKS</div>
+  <div class="tagline">// 10 SECOND CHALLENGE //</div>
+  <div class="subtitle">
+    Start the timer and stop it at exactly <strong style="color:var(--neon)">10.00</strong> seconds.<br>
+    The closer you are, the bigger your discount!
+  </div>
+  <button class="btn big" id="startBtn" onclick="startGame()">START</button>
+</div>
+
+<!-- ═══════ GAME SCREEN ═══════ -->
+<div id="game" class="screen">
+  <div class="timer-label">ELAPSED TIME</div>
+  <div class="timer-wrap">
+    <div class="timer" id="timer">0.00</div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+  <div class="hint" id="hint">Tap STOP at 10.00 seconds!</div>
+  <div style="margin-top:30px">
+    <button class="btn stop big" id="stopBtn" onclick="stopGame()">STOP</button>
+  </div>
+</div>
+
+<!-- ═══════ RESULT SCREEN ═══════ -->
+<div id="result" class="screen">
+  <div class="result-icon anim-zoom" id="resultIcon"></div>
+  <div class="result-msg anim-slide d1" id="resultMsg"></div>
+  <div class="result-time anim-slide d2" id="resultTime"></div>
+  <div class="result-discount anim-zoom d3" id="resultDiscount"></div>
+  <div class="result-claim anim-slide d4" id="resultClaim"></div>
+  <button class="btn anim-slide d5" id="retryBtn" onclick="retry()">PLAY AGAIN</button>
+  <div class="cooldown-msg anim-slide d6" id="cooldownMsg"></div>
+</div>
+
+<!-- ═══════ ALMOST-WIN OVERLAY ═══════ -->
+<div class="almost-overlay" id="almostOverlay">
+  <div class="almost-text" id="almostText"></div>
+  <div class="almost-sub">So close...</div>
+</div>
+
+<!-- ═══════ PARTICLES / CONFETTI ═══════ -->
+<div class="particles" id="particles"></div>
+<div class="confetti-container" id="confetti"></div>
+
+<script>
+// ── STATE ──
+let startTime = 0;
+let rafId = null;
+let elapsed = 0;
+let isRunning = false;
+let lastPlayTime = 0;
+const COOLDOWN = 30000; // 30 seconds
+
+// ── AUDIO CONTEXT (created on first interaction) ──
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function beep(freq, duration, type = 'square', vol = 0.15) {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.value = vol;
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
+function vibrate(ms) {
+  try { navigator.vibrate && navigator.vibrate(ms); } catch(e) {}
+}
+
+// ── SCREENS ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── GAME LOGIC ──
+function startGame() {
+  // Cooldown check
+  const now = Date.now();
+  if (lastPlayTime && (now - lastPlayTime) < COOLDOWN) {
+    const left = Math.ceil((COOLDOWN - (now - lastPlayTime)) / 1000);
+    alert(`Try again in ${left} seconds!`);
+    return;
+  }
+
+  beep(800, 0.1);
+  vibrate(50);
+  showScreen('game');
+
+  const timerEl = document.getElementById('timer');
+  const progressEl = document.getElementById('progress');
+  const hintEl = document.getElementById('hint');
+
+  timerEl.className = 'timer';
+  progressEl.className = 'progress-fill';
+  progressEl.style.width = '0%';
+  hintEl.textContent = 'Tap STOP at 10.00 seconds!';
+
+  startTime = performance.now();
+  isRunning = true;
+  let lastBeepSec = -1;
+
+  function tick() {
+    if (!isRunning) return;
+    elapsed = (performance.now() - startTime) / 1000;
+
+    // Display
+    timerEl.textContent = elapsed.toFixed(2);
+
+    // Progress bar (max at ~15 seconds visual)
+    const pct = Math.min((elapsed / 15) * 100, 100);
+    progressEl.style.width = pct + '%';
+
+    // Color states
+    if (elapsed >= 9.5 && elapsed <= 10.5) {
+      timerEl.className = 'timer hot';
+      progressEl.className = 'progress-fill hot';
+      hintEl.textContent = 'NOW! NOW! NOW!';
+      // Beep near 10s
+      const sec = Math.floor(elapsed * 2) / 2;
+      if (sec !== lastBeepSec && elapsed >= 9.5 && elapsed <= 10.5) {
+        lastBeepSec = sec;
+        beep(1200, 0.05, 'sine', 0.1);
+        vibrate(30);
+      }
+    } else if (elapsed > 10.5) {
+      timerEl.className = 'timer danger';
+      progressEl.className = 'progress-fill over';
+      hintEl.textContent = 'Too far! Stop now!';
+    }
+
+    // Auto-stop at 20 seconds
+    if (elapsed >= 20) {
+      stopGame();
+      return;
+    }
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  rafId = requestAnimationFrame(tick);
+}
+
+function stopGame() {
+  if (!isRunning) return;
+  isRunning = false;
+  cancelAnimationFrame(rafId);
+  lastPlayTime = Date.now();
+
+  const finalTime = elapsed;
+  const diff = Math.abs(finalTime - 10);
+
+  vibrate(100);
+  beep(600, 0.2, 'sine');
+
+  // Determine result
+  let tier;
+  if (diff <= 0.20) {
+    tier = 'gold';  // 50% off
+  } else if (diff <= 0.50) {
+    tier = 'silver'; // 20% off
+  } else {
+    tier = 'bronze'; // 5% off
+  }
+
+  // "Almost win" dramatic pause for close calls
+  if (diff > 0.20 && diff <= 0.60) {
+    showAlmostWin(finalTime, tier);
+  } else {
+    showResult(finalTime, tier);
+  }
+}
+
+function showAlmostWin(time, tier) {
+  const overlay = document.getElementById('almostOverlay');
+  const text = document.getElementById('almostText');
+
+  const diff = Math.abs(time - 10);
+  if (diff <= 0.50) {
+    text.textContent = 'ALMOST PERFECT!';
+    text.style.color = 'var(--gold)';
+  } else {
+    text.textContent = 'SO CLOSE!';
+    text.style.color = 'var(--orange)';
+  }
+
+  overlay.classList.add('show');
+  beep(400, 0.1); setTimeout(() => beep(600, 0.1), 150); setTimeout(() => beep(800, 0.15), 300);
+  vibrate([50, 50, 50, 50, 100]);
+
+  setTimeout(() => {
+    overlay.classList.remove('show');
+    showResult(time, tier);
+  }, 1500);
+}
+
+function showResult(time, tier) {
+  const icon = document.getElementById('resultIcon');
+  const msg = document.getElementById('resultMsg');
+  const timeEl = document.getElementById('resultTime');
+  const discount = document.getElementById('resultDiscount');
+  const claim = document.getElementById('resultClaim');
+  const retryBtn = document.getElementById('retryBtn');
+  const cooldownMsg = document.getElementById('cooldownMsg');
+
+  const diff = Math.abs(time - 10);
+  timeEl.textContent = `Your time: ${time.toFixed(2)}s (${diff <= 0.005 ? 'PERFECT!' : (time < 10 ? (10 - time).toFixed(2) + 's early' : (time - 10).toFixed(2) + 's late')})`;
+
+  if (tier === 'gold') {
+    icon.textContent = '\uD83C\uDF89';
+    msg.textContent = 'Congratulations! You nailed it!';
+    msg.style.color = 'var(--gold)';
+    discount.textContent = '50% OFF COMBOS';
+    discount.className = 'result-discount anim-zoom d3 gold';
+    spawnConfetti();
+    beep(523, 0.15, 'sine'); setTimeout(() => beep(659, 0.15, 'sine'), 150); setTimeout(() => beep(784, 0.3, 'sine'), 300);
+    vibrate([100, 50, 100, 50, 200]);
+  } else if (tier === 'silver') {
+    icon.textContent = '\uD83D\uDD25';
+    msg.textContent = 'Great try! Almost perfect!';
+    msg.style.color = 'var(--orange)';
+    discount.textContent = '20% OFF';
+    discount.className = 'result-discount anim-zoom d3 orange';
+    beep(523, 0.15, 'sine'); setTimeout(() => beep(659, 0.2, 'sine'), 200);
+    vibrate([100, 50, 100]);
+  } else {
+    icon.textContent = '\uD83D\uDC4D';
+    msg.textContent = 'Nice try!';
+    msg.style.color = 'var(--neon)';
+    discount.textContent = '5% OFF';
+    discount.className = 'result-discount anim-zoom d3 neon';
+    beep(440, 0.2, 'sine');
+    vibrate(80);
+  }
+
+  // Claim message with timestamp
+  const now = new Date();
+  const ts = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  claim.innerHTML = `\uD83D\uDCF1 Show this screen at <strong style="color:var(--neon)">RollRicks</strong> counter to claim your discount!<br><span style="color:#666;font-size:.8em">Valid for 10 minutes \u00B7 ${ts}</span>`;
+
+  // Cooldown
+  retryBtn.disabled = true;
+  let cd = 30;
+  cooldownMsg.textContent = `Play again in ${cd}s`;
+  const cdInterval = setInterval(() => {
+    cd--;
+    if (cd <= 0) {
+      clearInterval(cdInterval);
+      retryBtn.disabled = false;
+      cooldownMsg.textContent = '';
+    } else {
+      cooldownMsg.textContent = `Play again in ${cd}s`;
+    }
+  }, 1000);
+
+  showScreen('result');
+}
+
+function retry() {
+  // Clear confetti
+  document.getElementById('confetti').innerHTML = '';
+  document.getElementById('particles').innerHTML = '';
+  showScreen('intro');
+}
+
+// ── CONFETTI ──
+function spawnConfetti() {
+  const container = document.getElementById('confetti');
+  container.innerHTML = '';
+  const colors = ['#00ff41','#ffd700','#ff0040','#00bfff','#ff6600','#ff00ff'];
+  for (let i = 0; i < 60; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti';
+    el.style.left = Math.random() * 100 + '%';
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    el.style.width = (6 + Math.random() * 8) + 'px';
+    el.style.height = (6 + Math.random() * 8) + 'px';
+    el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    el.style.animationDuration = (2 + Math.random() * 2) + 's';
+    el.style.animationDelay = (Math.random() * 0.5) + 's';
+    container.appendChild(el);
+  }
+}
+
+// ── PREVENT ZOOM on double-tap ──
+document.addEventListener('dblclick', e => e.preventDefault());
+</script>
+</body>
+</html>
