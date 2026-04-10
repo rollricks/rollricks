@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
 
 export default function WhatsAppBtn() {
   return (
     <motion.a
-      href="https://wa.me/918918791675"
+      href={`https://wa.me/${WHATSAPP_NUMBER}`}
       target="_blank"
       rel="noopener noreferrer"
       initial={{ scale: 0, opacity: 0 }}

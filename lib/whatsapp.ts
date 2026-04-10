@@ -1,4 +1,5 @@
-export const WHATSAPP_NUMBER = "918918791675";
+export const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "918918791675";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://rollricks.vercel.app";
 
 export type OrderDetails = {
   orderId: string;
@@ -32,7 +33,9 @@ Pickup: ${order.pickupTime}
 Items:
 ${itemLines}
 Total: ₹${order.total}
-Payment: ${order.paymentMethod}`;
+Payment: ${order.paymentMethod}
+
+Track your order here: ${SITE_URL}/track`;
 
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
@@ -66,6 +69,8 @@ ${itemLines}
 Total Paid: ₹${order.total}
 Payment: UPI (Online)
 
+Track your order: ${SITE_URL}/track
+
 Please confirm my order. Thank you! 🙏`;
 
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
@@ -74,13 +79,43 @@ Please confirm my order. Thank you! 🙏`;
 export function generateStatusWhatsApp(
   orderId: string,
   status: string,
-  customerName: string
+  customerName: string,
+  customerPhone: string
 ): string {
-  const message = `Hi ${customerName}! 👋
+  let message: string;
+
+  if (status === "Confirmed") {
+    message = `Hi ${customerName}! 👋
+Great news! Your RollRicks order #${orderId} has been *confirmed* ✅
+
+We're getting it ready for you!
+Track your order live: ${SITE_URL}/track
+
+— Team RollRicks 🔥`;
+  } else if (status === "Ready for Pickup") {
+    message = `Hi ${customerName}! 🛎️
+Your RollRicks order #${orderId} is *READY for pickup*! 🎉
+
+Come grab it while it's hot! 🔥
+Track: ${SITE_URL}/track
+
+— Team RollRicks`;
+  } else if (status === "Done") {
+    message = `Hi ${customerName}! 🙏
+Thank you for ordering from RollRicks! ❤️
+
+We hope you loved your food. See you again soon! 🔥
+
+Order next time: ${SITE_URL}/menu`;
+  } else {
+    message = `Hi ${customerName}! 👋
 Your RollRicks order #${orderId} update:
 Status: ${status}
 
-Thanks for ordering with RollRicks! 🔥`;
+Track your order: ${SITE_URL}/track
 
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
+— Team RollRicks 🔥`;
+  }
+
+  return `https://wa.me/91${customerPhone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(message)}`;
 }

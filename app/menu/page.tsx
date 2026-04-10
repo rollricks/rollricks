@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
@@ -9,6 +9,8 @@ import { combos } from "@/lib/combo-data";
 import ComboCard from "@/components/ComboCard";
 import MenuItem from "@/components/MenuItem";
 import { useCart } from "@/context/CartContext";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot } from "firebase/firestore";
 
 const tabs = [
   { key: "Combos", emoji: "🎯", color: "text-[#FFD600]" },
@@ -31,6 +33,34 @@ const tabColors: Record<Tab, string> = {
 export default function MenuPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Combos");
   const { totalItems, totalPrice } = useCart();
+  const [menuAvailability, setMenuAvailability] = useState<Record<string, boolean>>({});
+
+  // Load menu availability from Firebase (admin-controlled)
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, "menu_config"),
+      (snapshot) => {
+        const config: Record<string, boolean> = {};
+        snapshot.docs.forEach((d) => {
+          if (d.data().available !== undefined) {
+            config[d.id] = d.data().available;
+          }
+        });
+        setMenuAvailability(config);
+      },
+      () => {
+        // Firebase unavailable — all items available by default
+      }
+    );
+    return () => unsub();
+  }, []);
+
+  // Apply availability: if admin toggled it off in Firebase, override local data
+  const applyAvailability = (items: typeof menuCategories[0]["items"]) =>
+    items.map((item) => ({
+      ...item,
+      available: menuAvailability[item.id] !== undefined ? menuAvailability[item.id] : item.available,
+    }));
 
   const color = tabColors[activeTab];
 
@@ -132,7 +162,7 @@ export default function MenuPage() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2.5">
-                      {category.items.map((item) => (
+                      {applyAvailability(category.items).map((item) => (
                         <MenuItem key={item.id} item={item} />
                       ))}
                     </div>
@@ -163,7 +193,7 @@ export default function MenuPage() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2.5">
-                      {category.items.map((item) => (
+                      {applyAvailability(category.items).map((item) => (
                         <MenuItem key={item.id} item={item} />
                       ))}
                     </div>
@@ -186,7 +216,7 @@ export default function MenuPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2.5">
-                  {drinksCategory.items.map((item) => (
+                  {applyAvailability(drinksCategory.items).map((item) => (
                     <MenuItem key={item.id} item={item} />
                   ))}
                 </div>
@@ -207,7 +237,7 @@ export default function MenuPage() {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2.5">
-                  {dessertsCategory.items.map((item) => (
+                  {applyAvailability(dessertsCategory.items).map((item) => (
                     <MenuItem key={item.id} item={item} />
                   ))}
                 </div>

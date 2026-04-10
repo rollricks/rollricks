@@ -4,6 +4,21 @@ A full-stack food ordering website for **RollRicks**, a street food cart in Jaba
 
 **Live:** [rollricks.vercel.app](https://rollricks.vercel.app)
 
+**Related repo:** [rollricks/rollricks-game](https://github.com/rollricks/rollricks-game) — the standalone "10 Second Challenge" discount mini-game (kept separate so it can't clobber this storefront).
+
+---
+
+## What's in this repo (and what isn't)
+
+**In this repo:** the full Next.js 14 storefront — home, menu, checkout, track, events, and admin dashboard. Firebase-backed orders + menu availability + event enquiries. WhatsApp order notifications. Cart persistence in localStorage. UPI-QR payment flow.
+
+**Not in this repo:**
+- The **10 Second Challenge game** — moved to [rollricks/rollricks-game](https://github.com/rollricks/rollricks-game).
+- A real payment gateway (Razorpay/Stripe) — payments are UPI-QR + WhatsApp confirmation only.
+- An email/SMS provider — all customer notifications go through WhatsApp deep links (`wa.me`).
+- A CMS — menu items live in `lib/menu-data.ts`, combos in `lib/combo-data.ts`, event packages in `app/events/page.tsx`. Availability toggles are stored in Firestore `menu_config`.
+- Automated tests — none yet.
+
 ---
 
 ## Tech Stack
