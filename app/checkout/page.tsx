@@ -1,16 +1,32 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
 import { Minus, Plus, Trash2, Check, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import QRCode from "qrcode";
 import { useCart } from "@/context/CartContext";
 import { generateOrderWhatsApp, generatePaymentWhatsApp } from "@/lib/whatsapp";
+import { buildUpiLink, SLOT_CAPACITY } from "@/lib/upi";
 
 type Step = 1 | 2 | 3;
 
 const stepLabels = ["Cart Review", "Your Details", "Confirm"];
+
+// Collision-safe short ID. crypto.randomUUID gives ~122 bits of
+// entropy; we keep the first 6 hex chars after stripping dashes for a
+// readable order code (RR + 6 chars = ~16M combinations, plenty for a
+// single-cart business). Falls back to Math.random on the rare client
+// without crypto.randomUUID.
+function generateId(): string {
+  let raw: string;
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    raw = crypto.randomUUID().replace(/-/g, "");
+  } else {
+    raw = Math.random().toString(16).slice(2) + Math.random().toString(16).slice(2);
+  }
+  return "RR" + raw.slice(0, 6).toUpperCase();
+}
 
 function generatePickupSlots(): string[] {
   const slots: string[] = [];
@@ -46,8 +62,56 @@ export default function CheckoutPage() {
   const [orderId, setOrderId] = useState("");
   const [whatsappUrl, setWhatsappUrl] = useState("");
   const [showQR, setShowQR] = useState(false);
+  const [upiLink, setUpiLink] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState("");
+
+  // Slot fill counts (slot label -> count of non-cancelled orders for today)
+  const [slotFill, setSlotFill] = useState<Record<string, number>>({});
+
+  // Idempotency key — one per checkout session, regenerated on success.
+  // Survives double-click, browser back+resubmit, network retry within
+  // the same component instance.
+  const idempotencyKeyRef = useRef<string>("");
+  if (!idempotencyKeyRef.current) {
+    idempotencyKeyRef.current = generateId();
+  }
 
   const pickupSlots = useMemo(() => generatePickupSlots(), []);
+
+  // Load today's slot fill counts so we can grey out full slots in the
+  // dropdown. Best-effort: if Firebase is unreachable, allow all slots
+  // and rely on the submit-time recheck.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { collection, query, where, getDocs, Timestamp } = await import(
+          "firebase/firestore"
+        );
+        const { db } = await import("@/lib/firebase");
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const q = query(
+          collection(db, "orders"),
+          where("createdAt", ">=", Timestamp.fromDate(startOfDay))
+        );
+        const snap = await getDocs(q);
+        const counts: Record<string, number> = {};
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          if (data.status === "cancelled") return;
+          const slot = data.pickupTime;
+          if (typeof slot === "string") counts[slot] = (counts[slot] || 0) + 1;
+        });
+        if (!cancelled) setSlotFill(counts);
+      } catch {
+        // ignore — submit-time check is the real guard
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const validateStep2 = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -67,7 +131,7 @@ export default function CheckoutPage() {
     setPlacing(true);
 
     try {
-      const id = "RR" + Date.now().toString(36).toUpperCase().slice(-6);
+      const id = generateId();
       setOrderId(id);
 
       const orderItems = items.map((item) => ({
@@ -86,11 +150,21 @@ export default function CheckoutPage() {
         paymentMethod,
       };
 
-      // Save to Firebase
+      // Save to Firebase with a submit-time slot recheck and an
+      // idempotency guard. The idempotency guard catches the race where
+      // two requests fire from the same checkout session (double-tap,
+      // network retry) by aborting if a doc with the same key already
+      // exists.
       try {
-        const { collection, addDoc, serverTimestamp } = await import(
-          "firebase/firestore"
-        );
+        const {
+          collection,
+          addDoc,
+          serverTimestamp,
+          query,
+          where,
+          getDocs,
+          Timestamp,
+        } = await import("firebase/firestore");
         const { db, auth } = await import("@/lib/firebase");
         const { signInAnonymously } = await import("firebase/auth");
 
@@ -103,33 +177,90 @@ export default function CheckoutPage() {
           }
         }
 
-        const firebasePromise = addDoc(collection(db, "orders"), {
-          orderId: id,
-          customerName: name.trim(),
-          phone: phone.trim(),
-          items: orderItems,
-          total: totalPrice,
-          pickupTime,
-          paymentMethod,
-          status: "new",
-          createdAt: serverTimestamp(),
-        });
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Firebase timeout")), 8000)
+        // Idempotency: if this checkout session already produced an order
+        // doc, reuse it instead of creating a duplicate. This survives
+        // double-clicks and back-button resubmits.
+        const idempotencyKey = idempotencyKeyRef.current;
+        const existingQ = query(
+          collection(db, "orders"),
+          where("idempotencyKey", "==", idempotencyKey)
         );
-        await Promise.race([firebasePromise, timeoutPromise]);
+        const existingSnap = await getDocs(existingQ);
+        if (!existingSnap.empty) {
+          // Already saved — proceed straight to the post-save flow
+        } else {
+          // Submit-time slot capacity recheck. Two customers can pick the
+          // same slot before either submits; we re-count today's docs at
+          // write time and reject if the slot is full.
+          const startOfDay = new Date();
+          startOfDay.setHours(0, 0, 0, 0);
+          const slotQ = query(
+            collection(db, "orders"),
+            where("createdAt", ">=", Timestamp.fromDate(startOfDay)),
+            where("pickupTime", "==", pickupTime)
+          );
+          const slotSnap = await getDocs(slotQ);
+          const activeInSlot = slotSnap.docs.filter(
+            (d) => d.data().status !== "cancelled"
+          ).length;
+          if (activeInSlot >= SLOT_CAPACITY) {
+            setSlotFill((prev) => ({ ...prev, [pickupTime]: activeInSlot }));
+            setErrors({
+              pickupTime: `That slot just filled up. Please pick another time.`,
+            });
+            setPlacing(false);
+            setStep(2);
+            return;
+          }
+
+          const firebasePromise = addDoc(collection(db, "orders"), {
+            orderId: id,
+            idempotencyKey,
+            customerName: name.trim(),
+            phone: phone.trim(),
+            items: orderItems,
+            total: totalPrice,
+            pickupTime,
+            paymentMethod,
+            status: "new",
+            createdAt: serverTimestamp(),
+          });
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Firebase timeout")), 8000)
+          );
+          await Promise.race([firebasePromise, timeoutPromise]);
+
+          // Update local slot fill so the user can't reuse the now-fuller slot
+          setSlotFill((prev) => ({
+            ...prev,
+            [pickupTime]: activeInSlot + 1,
+          }));
+        }
       } catch (firebaseErr) {
         console.error("Firebase save failed:", firebaseErr);
         // Order will still proceed via WhatsApp but won't appear in admin dashboard
       }
 
-      // If Pay Online, show QR first
+      // If Pay Online, build the dynamic UPI link + QR for THIS order
       if (paymentMethod === "Pay Online — UPI via WhatsApp") {
+        const link = buildUpiLink({ amount: totalPrice, orderId: id });
+        setUpiLink(link);
+        try {
+          const dataUrl = await QRCode.toDataURL(link, {
+            margin: 1,
+            width: 320,
+            color: { dark: "#000000", light: "#ffffff" },
+          });
+          setQrDataUrl(dataUrl);
+        } catch {
+          setQrDataUrl("");
+        }
         const waUrl = generatePaymentWhatsApp(orderDetails);
         setWhatsappUrl(waUrl);
         setShowQR(true);
         setPlacing(false);
-        clearCart();
+        // Don't clear cart yet — wait until customer confirms payment, so a
+        // back-button doesn't lose the cart on a failed UPI attempt.
         return;
       }
 
@@ -140,6 +271,8 @@ export default function CheckoutPage() {
 
       setOrderPlaced(true);
       clearCart();
+      // Rotate the idempotency key so a new order from the same tab is allowed
+      idempotencyKeyRef.current = generateId();
     } catch (err) {
       console.error("Order placement error:", err);
       alert("Something went wrong. Please try again.");
@@ -153,6 +286,8 @@ export default function CheckoutPage() {
     window.open(whatsappUrl, "_blank");
     setShowQR(false);
     setOrderPlaced(true);
+    clearCart();
+    idempotencyKeyRef.current = generateId();
   };
 
   // QR Payment screen
@@ -174,23 +309,41 @@ export default function CheckoutPage() {
             SCAN &amp; PAY
           </h1>
           <p className="text-sm text-[#a1a1aa] font-body">
-            Scan the QR code below to pay <span className="text-[#FFD600] font-bold">₹{totalPrice || "—"}</span> via UPI
+            Pay <span className="text-[#FFD600] font-bold">₹{totalPrice || "—"}</span> via UPI — your order ID is auto-attached
           </p>
 
-          {/* QR Code */}
+          {/* Dynamic QR Code (encodes amount + orderId so the merchant
+              can match parallel payments unambiguously) */}
           <div className="bg-white rounded-2xl p-4 shadow-lg">
-            <Image
-              src="/qr-payment.png"
-              alt="UPI Payment QR Code"
-              width={260}
-              height={260}
-              className="rounded-xl"
-              priority
-            />
+            {qrDataUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={qrDataUrl}
+                alt="UPI Payment QR Code"
+                width={260}
+                height={260}
+                className="rounded-xl block"
+              />
+            ) : (
+              <div className="w-[260px] h-[260px] flex items-center justify-center text-[#71717a] text-xs">
+                Generating QR…
+              </div>
+            )}
           </div>
 
+          {/* Mobile-only: open the customer's UPI app directly with
+              amount + orderId pre-filled. Saves them from scanning. */}
+          {upiLink && (
+            <a
+              href={upiLink}
+              className="w-full py-3 rounded-xl bg-[#FFD600] text-[#09090b] font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+            >
+              Open UPI app to pay ₹{totalPrice}
+            </a>
+          )}
+
           <p className="text-xs text-[#71717a] font-body">
-            After payment, click the button below to confirm via WhatsApp
+            After payment, click below to confirm via WhatsApp
           </p>
 
           <button
@@ -511,11 +664,20 @@ export default function CheckoutPage() {
                     <option value="" disabled>
                       Select a time slot
                     </option>
-                    {pickupSlots.map((slot) => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
+                    {pickupSlots.map((slot) => {
+                      const filled = slotFill[slot] || 0;
+                      const isFull = filled >= SLOT_CAPACITY;
+                      return (
+                        <option key={slot} value={slot} disabled={isFull}>
+                          {slot}
+                          {isFull
+                            ? " — full"
+                            : filled > 0
+                            ? ` — ${SLOT_CAPACITY - filled} left`
+                            : ""}
+                        </option>
+                      );
+                    })}
                   </select>
                   {errors.pickupTime && (
                     <p className="text-[#E53935] text-xs mt-1">

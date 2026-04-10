@@ -51,6 +51,12 @@ export default function AdminPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState("All");
   const [firebaseError, setFirebaseError] = useState<string | null>(null);
+  const [firebaseErrorDetail, setFirebaseErrorDetail] = useState<{
+    code?: string;
+    message?: string;
+    authState?: string;
+    projectId?: string;
+  } | null>(null);
   const [activeSection, setActiveSection] = useState<AdminSection>("orders");
 
   const [menuAvailability, setMenuAvailability] = useState<
@@ -163,6 +169,36 @@ export default function AdminPage() {
       };
     }
 
+    function captureError(err: unknown, fallbackLabel: string) {
+      console.error(fallbackLabel, err);
+      const e = err as { code?: string; message?: string };
+      setFirebaseErrorDetail({
+        code: e.code,
+        message: e.message || String(err),
+        authState: auth.currentUser
+          ? `signed in (${auth.currentUser.isAnonymous ? "anon" : auth.currentUser.email || "user"}, uid=${auth.currentUser.uid.slice(0, 8)})`
+          : "not signed in",
+        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      });
+      if (e.code === "permission-denied") {
+        setFirebaseError(
+          "Permission denied — Firestore security rules rejected this read. See debug panel below."
+        );
+      } else if (e.code === "unauthenticated") {
+        setFirebaseError(
+          "Not authenticated — admin login did not establish a Firebase auth context."
+        );
+      } else if (e.code === "failed-precondition") {
+        setFirebaseError(
+          "Missing Firestore index. Create the suggested index in Firebase console."
+        );
+      } else {
+        setFirebaseError(
+          `Could not load orders (${e.code || "unknown error"}). See debug panel below.`
+        );
+      }
+    }
+
     try {
       const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
       unsubscribe = onSnapshot(
@@ -180,9 +216,9 @@ export default function AdminPage() {
           isFirstLoad.current = false;
           setOrders(ordersList);
           setFirebaseError(null);
+          setFirebaseErrorDetail(null);
         },
         (err) => {
-          console.error("Orders listener error:", err);
           // Fallback: try without orderBy in case of missing index
           const fallbackQ = query(collection(db, "orders"));
           unsubscribe = onSnapshot(
@@ -192,28 +228,15 @@ export default function AdminPage() {
               ordersList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
               setOrders(ordersList);
               setFirebaseError(null);
+              setFirebaseErrorDetail(null);
             },
-            (fallbackErr) => {
-              console.error("Orders fallback error:", fallbackErr);
-              const code = (fallbackErr as { code?: string }).code;
-              if (code === "permission-denied") {
-                setFirebaseError(
-                  "Permission denied. Please log in with your Firebase admin email and password."
-                );
-              } else {
-                setFirebaseError(
-                  "Could not load orders. Check Firebase credentials in .env.local"
-                );
-              }
-            }
+            (fallbackErr) => captureError(fallbackErr, "Orders fallback error:")
           );
+          captureError(err, "Orders listener error:");
         }
       );
     } catch (err) {
-      console.error("Firebase setup error:", err);
-      setFirebaseError(
-        "Firebase not configured. Please add your Firebase credentials to .env.local"
-      );
+      captureError(err, "Firebase setup error:");
     }
 
     return () => {
@@ -493,12 +516,44 @@ export default function AdminPage() {
       </AnimatePresence>
 
       {firebaseError ? (
-        <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">
-          <div className="rounded-xl bg-[#E53935]/10 border border-[#E53935]/30 p-6">
+        <div className="max-w-2xl mx-auto px-4 py-12 space-y-4">
+          <div className="rounded-xl bg-[#E53935]/10 border border-[#E53935]/30 p-6 text-center">
             <p className="text-[#E53935] font-body font-medium text-lg">
               {firebaseError}
             </p>
           </div>
+          {firebaseErrorDetail && (
+            <div className="rounded-xl bg-[#111] border border-[#27272a] p-5 font-mono text-xs text-[#a1a1aa] space-y-2">
+              <p className="text-[#FFD600] font-bold uppercase tracking-wider text-[10px] font-body">
+                Debug info — share with support
+              </p>
+              <div className="break-all">
+                <span className="text-[#71717a]">code:</span>{" "}
+                <span className="text-[#e4e4e7]">{firebaseErrorDetail.code || "—"}</span>
+              </div>
+              <div className="break-all">
+                <span className="text-[#71717a]">message:</span>{" "}
+                <span className="text-[#e4e4e7]">{firebaseErrorDetail.message || "—"}</span>
+              </div>
+              <div className="break-all">
+                <span className="text-[#71717a]">auth:</span>{" "}
+                <span className="text-[#e4e4e7]">{firebaseErrorDetail.authState || "—"}</span>
+              </div>
+              <div className="break-all">
+                <span className="text-[#71717a]">project:</span>{" "}
+                <span className="text-[#e4e4e7]">{firebaseErrorDetail.projectId || "(env var missing!)"}</span>
+              </div>
+              <p className="text-[#71717a] pt-2 font-body">
+                {!firebaseErrorDetail.projectId
+                  ? "→ NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in Vercel. Add all NEXT_PUBLIC_FIREBASE_* env vars in Vercel → Project Settings → Environment Variables, then redeploy."
+                  : firebaseErrorDetail.code === "permission-denied"
+                  ? "→ Firestore security rules are blocking reads. Either tighten admin auth (use a real Firebase user instead of env-var fallback) or relax the rules for the orders collection during testing."
+                  : firebaseErrorDetail.code === "unauthenticated"
+                  ? "→ Anonymous Auth is likely disabled in Firebase Console. Enable it under Authentication → Sign-in method → Anonymous."
+                  : "→ Open Firebase Console → Firestore → check if the orders collection has any documents. If empty, the customer write path is failing. If it has docs, share the error code above."}
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">

@@ -1,5 +1,11 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  type Firestore,
+} from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -13,6 +19,27 @@ const firebaseConfig = {
 
 const app =
   getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-export const db = getFirestore(app);
+
+// Enable IndexedDB-backed offline cache only in the browser. The admin
+// dashboard runs at the cart on flaky Wi-Fi — with this, the last seen
+// orders stay visible during disconnects and resync automatically.
+let _db: Firestore;
+if (typeof window !== "undefined") {
+  try {
+    _db = initializeFirestore(app, {
+      localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager(),
+      }),
+    });
+  } catch {
+    // initializeFirestore can only be called once per app — fall through
+    // if a hot-reload or duplicate import already initialized it.
+    _db = getFirestore(app);
+  }
+} else {
+  _db = getFirestore(app);
+}
+
+export const db = _db;
 export const auth = getAuth(app);
 export default app;
