@@ -28,12 +28,23 @@ function generateId(): string {
   return "RR" + raw.slice(0, 6).toUpperCase();
 }
 
-function generatePickupSlots(): string[] {
+// Minimum lead time in minutes — kitchen needs at least this much
+// notice between an order being placed and the customer showing up.
+const MIN_LEAD_MINUTES = 30;
+
+function generatePickupSlots(now: Date = new Date()): string[] {
   const slots: string[] = [];
+  const cutoff = new Date(now.getTime() + MIN_LEAD_MINUTES * 60 * 1000);
   // Fixed slots from 6:00 PM to 11:30 PM in 15-min intervals
   for (let hour = 18; hour <= 23; hour++) {
     for (const min of [0, 15, 30, 45]) {
       if (hour === 23 && min > 30) break;
+      // Build a Date for this slot today and skip if it's already past
+      // the lead-time cutoff. Customers can't book a slot the kitchen
+      // can't realistically prep for.
+      const slotDate = new Date(now);
+      slotDate.setHours(hour, min, 0, 0);
+      if (slotDate < cutoff) continue;
       const ampm = hour >= 12 ? "PM" : "AM";
       const h = hour % 12 || 12;
       const m = min.toString().padStart(2, "0");
@@ -76,7 +87,22 @@ export default function CheckoutPage() {
     idempotencyKeyRef.current = generateId();
   }
 
-  const pickupSlots = useMemo(() => generatePickupSlots(), []);
+  // Tick every minute so the slot list drops slots that have just gone
+  // past the lead-time cutoff while the customer is on the page.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  const pickupSlots = useMemo(() => generatePickupSlots(now), [now]);
+
+  // If the currently-selected slot just expired, clear it so the user
+  // notices and re-picks instead of submitting an invalid time.
+  useEffect(() => {
+    if (pickupTime && !pickupSlots.includes(pickupTime)) {
+      setPickupTime("");
+    }
+  }, [pickupSlots, pickupTime]);
 
   // Load today's slot fill counts so we can grey out full slots in the
   // dropdown. Best-effort: if Firebase is unreachable, allow all slots
@@ -85,15 +111,15 @@ export default function CheckoutPage() {
     let cancelled = false;
     (async () => {
       try {
-        const { collection, query, where, getDocs, Timestamp } = await import(
-          "firebase/firestore"
-        );
+        const { collection, query, where, getDocs, limit, Timestamp } =
+          await import("firebase/firestore");
         const { db } = await import("@/lib/firebase");
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
         const q = query(
           collection(db, "orders"),
-          where("createdAt", ">=", Timestamp.fromDate(startOfDay))
+          where("createdAt", ">=", Timestamp.fromDate(startOfDay)),
+          limit(20)
         );
         const snap = await getDocs(q);
         const counts: Record<string, number> = {};
@@ -163,6 +189,7 @@ export default function CheckoutPage() {
           query,
           where,
           getDocs,
+          limit,
           Timestamp,
         } = await import("firebase/firestore");
         const { db, auth } = await import("@/lib/firebase");
@@ -183,7 +210,8 @@ export default function CheckoutPage() {
         const idempotencyKey = idempotencyKeyRef.current;
         const existingQ = query(
           collection(db, "orders"),
-          where("idempotencyKey", "==", idempotencyKey)
+          where("idempotencyKey", "==", idempotencyKey),
+          limit(1)
         );
         const existingSnap = await getDocs(existingQ);
         if (!existingSnap.empty) {
@@ -197,7 +225,8 @@ export default function CheckoutPage() {
           const slotQ = query(
             collection(db, "orders"),
             where("createdAt", ">=", Timestamp.fromDate(startOfDay)),
-            where("pickupTime", "==", pickupTime)
+            where("pickupTime", "==", pickupTime),
+            limit(20)
           );
           const slotSnap = await getDocs(slotQ);
           const activeInSlot = slotSnap.docs.filter(

@@ -10,6 +10,7 @@ import {
   where,
   orderBy,
   onSnapshot,
+  limit,
 } from "firebase/firestore";
 import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import TrackStatus from "@/components/TrackStatus";
@@ -55,7 +56,8 @@ export default function TrackPage() {
       const q = query(
         collection(db, "orders"),
         where("phone", "==", phone),
-        orderBy("createdAt", "desc")
+        orderBy("createdAt", "desc"),
+        limit(20)
       );
 
       unsubscribe = onSnapshot(
@@ -98,7 +100,8 @@ export default function TrackPage() {
           // Fallback: try without orderBy
           const fallbackQ = query(
             collection(db, "orders"),
-            where("phone", "==", phone)
+            where("phone", "==", phone),
+            limit(20)
           );
           unsubscribe = onSnapshot(
             fallbackQ,

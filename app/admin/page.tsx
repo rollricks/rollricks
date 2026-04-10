@@ -12,8 +12,10 @@ import {
   updateDoc,
   getDocs,
   setDoc,
+  where,
+  Timestamp,
 } from "firebase/firestore";
-import { signInWithEmailAndPassword, signInAnonymously } from "firebase/auth";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
 import { generateStatusWhatsApp } from "@/lib/whatsapp";
 import { allMenuItems } from "@/lib/menu-data";
 import OrderCard from "@/components/OrderCard";
@@ -98,58 +100,59 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Login handler
+  // Restore session on reload — if Firebase already has a signed-in
+  // user (persisted in IndexedDB), skip the login screen.
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user && !user.isAnonymous) setIsLoggedIn(true);
+    });
+    return () => unsub();
+  }, []);
+
+  // Login handler — Firebase email/password only. The old env-var
+  // fallback was removed because (a) it bypassed Firestore auth context
+  // entirely, leaving rules effectively unenforced, and (b) credentials
+  // baked into NEXT_PUBLIC_ vars are visible to anyone who views the
+  // page source. Create a real Firebase Auth user in the console.
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoginError(null);
     setLoggingIn(true);
 
-    const envAdminId = process.env.NEXT_PUBLIC_ADMIN_ID;
-    const envAdminPassword = process.env.NEXT_PUBLIC_ADMIN_PASSWORD;
-
-    const envMatch =
-      envAdminId &&
-      envAdminPassword &&
-      adminId.trim() === envAdminId &&
-      password === envAdminPassword;
-
-    // Try Firebase Auth sign-in to establish auth context for Firestore queries
     try {
-      // Try email/password auth (adminId might be an email)
       const authPromise = signInWithEmailAndPassword(auth, adminId.trim(), password);
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("Auth timeout")), 5000)
+        setTimeout(() => reject(new Error("Auth timeout — check your connection")), 8000)
       );
       await Promise.race([authPromise, timeoutPromise]);
       setIsLoggedIn(true);
-      setLoggingIn(false);
-      return;
-    } catch {
-      // Firebase email auth failed — try env var check + anonymous auth
-    }
-
-    if (envMatch) {
-      // Env var credentials matched — try anonymous sign-in for Firestore access
-      try {
-        await signInAnonymously(auth);
-      } catch {
-        // Anonymous auth not available — Firestore may still work if rules allow it
-        console.warn("Anonymous auth failed. Firestore access may be limited.");
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+        setLoginError("Invalid email or password.");
+      } else if (code === "auth/too-many-requests") {
+        setLoginError("Too many failed attempts. Try again in a few minutes.");
+      } else if (code === "auth/network-request-failed") {
+        setLoginError("Network error. Check your internet connection.");
+      } else {
+        setLoginError((err as Error).message || "Login failed.");
       }
-      setIsLoggedIn(true);
+    } finally {
       setLoggingIn(false);
-      return;
     }
-
-    setLoginError("Invalid Admin ID or Password.");
-    setLoggingIn(false);
   }
 
-  // Listen to orders
+  // Listen to orders. Two cost-saving constraints applied here:
+  //   1. Only today's orders — without this, the listener pulls every
+  //      order ever for every reload, which would torch the Firestore
+  //      free tier the moment volume picked up.
+  //   2. The listener auto-detaches when the admin tab is in the
+  //      background (visibilitychange) and re-attaches on focus, so
+  //      reads aren't billed while the admin isn't looking.
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    let unsubscribe: () => void;
+    let unsubscribe: (() => void) | null = null;
 
     function parseOrderDoc(d: import("firebase/firestore").QueryDocumentSnapshot): Order {
       const data = d.data();
@@ -199,48 +202,86 @@ export default function AdminPage() {
       }
     }
 
-    try {
-      const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-      unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const ordersList = snapshot.docs.map(parseOrderDoc);
-          // Check for new orders (not on first load)
-          const newCount = ordersList.filter((o) => o.status === "new").length;
-          if (!isFirstLoad.current && newCount > prevOrderCount.current) {
-            playNotification();
-            setNewOrderAlert(true);
-            setTimeout(() => setNewOrderAlert(false), 3000);
+    function attachListener() {
+      if (unsubscribe) return; // already attached
+      try {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const q = query(
+          collection(db, "orders"),
+          where("createdAt", ">=", Timestamp.fromDate(startOfDay)),
+          orderBy("createdAt", "desc")
+        );
+        unsubscribe = onSnapshot(
+          q,
+          (snapshot) => {
+            const ordersList = snapshot.docs.map(parseOrderDoc);
+            const newCount = ordersList.filter((o) => o.status === "new").length;
+            if (!isFirstLoad.current && newCount > prevOrderCount.current) {
+              playNotification();
+              setNewOrderAlert(true);
+              setTimeout(() => setNewOrderAlert(false), 3000);
+            }
+            prevOrderCount.current = newCount;
+            isFirstLoad.current = false;
+            setOrders(ordersList);
+            setFirebaseError(null);
+            setFirebaseErrorDetail(null);
+          },
+          (err) => {
+            // Fallback: drop the orderBy in case the composite index
+            // hasn't been created yet
+            if (unsubscribe) {
+              unsubscribe();
+              unsubscribe = null;
+            }
+            const fallbackQ = query(
+              collection(db, "orders"),
+              where("createdAt", ">=", Timestamp.fromDate(startOfDay))
+            );
+            unsubscribe = onSnapshot(
+              fallbackQ,
+              (snapshot) => {
+                const ordersList = snapshot.docs.map(parseOrderDoc);
+                ordersList.sort(
+                  (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                );
+                setOrders(ordersList);
+                setFirebaseError(null);
+                setFirebaseErrorDetail(null);
+              },
+              (fallbackErr) => captureError(fallbackErr, "Orders fallback error:")
+            );
+            captureError(err, "Orders listener error:");
           }
-          prevOrderCount.current = newCount;
-          isFirstLoad.current = false;
-          setOrders(ordersList);
-          setFirebaseError(null);
-          setFirebaseErrorDetail(null);
-        },
-        (err) => {
-          // Fallback: try without orderBy in case of missing index
-          const fallbackQ = query(collection(db, "orders"));
-          unsubscribe = onSnapshot(
-            fallbackQ,
-            (snapshot) => {
-              const ordersList = snapshot.docs.map(parseOrderDoc);
-              ordersList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-              setOrders(ordersList);
-              setFirebaseError(null);
-              setFirebaseErrorDetail(null);
-            },
-            (fallbackErr) => captureError(fallbackErr, "Orders fallback error:")
-          );
-          captureError(err, "Orders listener error:");
-        }
-      );
-    } catch (err) {
-      captureError(err, "Firebase setup error:");
+        );
+      } catch (err) {
+        captureError(err, "Firebase setup error:");
+      }
     }
 
+    function detachListener() {
+      if (unsubscribe) {
+        unsubscribe();
+        unsubscribe = null;
+      }
+    }
+
+    // Pause the listener while the tab is hidden, resume on focus.
+    function handleVisibility() {
+      if (document.visibilityState === "visible") {
+        attachListener();
+      } else {
+        detachListener();
+      }
+    }
+
+    attachListener();
+    document.addEventListener("visibilitychange", handleVisibility);
+
     return () => {
-      if (unsubscribe) unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibility);
+      detachListener();
     };
   }, [isLoggedIn]);
 
@@ -255,6 +296,8 @@ export default function AdminPage() {
 
     async function loadMenuConfig() {
       try {
+        // menu_config is publicly readable per the rules; no limit
+        // needed since it's small (~22 docs).
         const snapshot = await getDocs(collection(db, "menu_config"));
         const config: Record<string, boolean> = { ...defaults };
         snapshot.docs.forEach((d) => {
@@ -428,11 +471,12 @@ export default function AdminPage() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <input
-              type="text"
-              placeholder="Admin ID"
+              type="email"
+              placeholder="Admin email"
               value={adminId}
               onChange={(e) => setAdminId(e.target.value)}
               required
+              autoComplete="email"
               className="w-full px-4 py-3.5 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-[#e4e4e7] font-body placeholder:text-[#52525b] transition-colors"
             />
             <input

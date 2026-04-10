@@ -1,0 +1,91 @@
+rules_version = '2';
+
+// RollRicks Firestore security rules.
+//
+// Threat model:
+//   - Anonymous customers must be able to create their own orders and
+//     read their own orders by phone number on /track.
+//   - Anonymous customers must NOT be able to enumerate all orders
+//     (the previous open rule leaked every customer's phone number).
+//   - The admin (a real Firebase Auth user) needs full read/write on
+//     orders, menu_config, and event enquiries.
+//
+// Key constraints:
+//   - Order list queries are capped at 20 docs per request, so even if
+//     the rule lets a query through, an attacker can only pull 20 at a
+//     time. Combined with the phone-equality requirement enforced
+//     client-side on /track, this is a meaningful ceiling.
+//   - Admin is identified by `request.auth.token.email == ADMIN_EMAIL`.
+//     Update ADMIN_EMAIL below to your real Firebase Auth admin user.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────────────────────
+    // CHANGE THIS to the email of the Firebase Auth user you
+    // create in the console (Authentication → Users → Add user)
+    // ─────────────────────────────────────────────────────────
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'admin@rollricks.in'
+        && request.auth.token.email_verified == true;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // ─── orders ───
+    match /orders/{orderId} {
+      // Admin: full access
+      allow read, write: if isAdmin();
+
+      // Customers: can read individual orders (e.g. by direct doc id)
+      allow get: if isSignedIn();
+
+      // Customers: list queries capped at 20 results so the orders
+      // collection can't be bulk-scraped. /track passes a phone
+      // equality filter and stays well under the cap.
+      allow list: if isSignedIn() && request.query.limit <= 20;
+
+      // Customers: can create their own orders. Basic field validation
+      // here keeps malformed/malicious docs out, but a Cloud Function
+      // is the right place to do server-side total recalculation when
+      // you eventually move there.
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasAll(['customerName', 'phone', 'items', 'total', 'status', 'createdAt'])
+        && request.resource.data.customerName is string
+        && request.resource.data.customerName.size() <= 60
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() >= 10
+        && request.resource.data.phone.size() <= 15
+        && request.resource.data.items is list
+        && request.resource.data.items.size() >= 1
+        && request.resource.data.items.size() <= 30
+        && request.resource.data.total is number
+        && request.resource.data.total > 0
+        && request.resource.data.total <= 100000
+        && request.resource.data.status == 'new';
+
+      // Customers cannot update or delete their own orders — only
+      // admin can change status. This prevents a customer from marking
+      // their own order "done" or wiping it.
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── menu_config (per-item availability toggles) ───
+    match /menu_config/{itemId} {
+      allow read: if true;        // public — needed by /menu page
+      allow write: if isAdmin();
+    }
+
+    // ─── event_enquiries (catering form submissions) ───
+    match /event_enquiries/{docId} {
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasAll(['name', 'phone'])
+        && request.resource.data.name is string
+        && request.resource.data.phone is string;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}
