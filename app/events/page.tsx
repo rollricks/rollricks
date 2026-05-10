@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 import { generateEventWhatsApp, WHATSAPP_NUMBER } from "@/lib/whatsapp";
 
 const packages = [
@@ -130,17 +129,17 @@ export default function EventsPage() {
     setSubmitting(true);
 
     try {
-      await addDoc(collection(db, "event_enquiries"), {
+      const { error } = await supabase.from("event_enquiries").insert({
         name: form.name.trim(),
         phone: cleanPhone,
-        eventType: form.eventType,
-        eventDate: form.eventDate || null,
-        guestCount: form.guestCount ? Number(form.guestCount) : null,
+        package: form.eventType,
+        event_date: form.eventDate || null,
+        guests: form.guestCount ? Number(form.guestCount) : null,
         notes: form.notes.trim() || null,
-        createdAt: Timestamp.now(),
       });
+      if (error) throw error;
     } catch (err) {
-      console.warn("Firebase save failed, continuing to WhatsApp:", err);
+      console.warn("Supabase save failed, continuing to WhatsApp:", err);
     }
 
     const whatsappUrl = generateEventWhatsApp({

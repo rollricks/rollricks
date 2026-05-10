@@ -3,15 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { db } from "@/lib/firebase";
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  onSnapshot,
-  limit,
-} from "firebase/firestore";
+import { supabase, rowToOrder, type OrderRow } from "@/lib/supabase";
 import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import TrackStatus from "@/components/TrackStatus";
 
@@ -50,105 +42,60 @@ export default function TrackPage() {
     setNotFound(false);
     setError(null);
 
-    let unsubscribe: () => void;
+    let active = true;
 
-    try {
-      const q = query(
-        collection(db, "orders"),
-        where("phone", "==", phone),
-        orderBy("createdAt", "desc"),
-        limit(20)
-      );
+    async function fetchOrders() {
+      const { data, error: err } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("phone", phone)
+        .order("created_at", { ascending: false })
+        .limit(20);
 
-      unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          setSearching(false);
-          setHasSearched(true);
-          if (snapshot.empty) {
-            setNotFound(true);
-            setOrders([]);
-          } else {
-            const ordersList = snapshot.docs.map((doc) => {
-              const data = doc.data();
-              return {
-                id: doc.id,
-                orderId: data.orderId ?? doc.id.slice(0, 8).toUpperCase(),
-                customerName: data.customerName ?? data.name ?? "Customer",
-                phone: data.phone ?? phone,
-                items: data.items ?? [],
-                total: data.total ?? 0,
-                pickupTime: data.pickupTime ?? "ASAP",
-                paymentMethod: data.paymentMethod ?? "Cash",
-                status: data.status ?? "new",
-                createdAt: data.createdAt?.toDate?.()
-                  ? data.createdAt.toDate().toISOString()
-                  : data.createdAt ?? new Date().toISOString(),
-              } as OrderData;
-            });
-            setOrders(ordersList);
-            // Auto-expand the latest active order
-            const activeOrder = ordersList.find((o) => o.status !== "done");
-            setExpandedOrder(activeOrder?.id ?? ordersList[0]?.id ?? null);
-            setNotFound(false);
-          }
-        },
-        (err) => {
-          console.error("Firestore error:", err);
-          setSearching(false);
-          setHasSearched(true);
-          // Fallback: try without orderBy
-          const fallbackQ = query(
-            collection(db, "orders"),
-            where("phone", "==", phone),
-            limit(20)
-          );
-          unsubscribe = onSnapshot(
-            fallbackQ,
-            (snapshot) => {
-              if (snapshot.empty) {
-                setNotFound(true);
-                setOrders([]);
-              } else {
-                const ordersList = snapshot.docs.map((doc) => {
-                  const data = doc.data();
-                  return {
-                    id: doc.id,
-                    orderId: data.orderId ?? doc.id.slice(0, 8).toUpperCase(),
-                    customerName: data.customerName ?? data.name ?? "Customer",
-                    phone: data.phone ?? phone,
-                    items: data.items ?? [],
-                    total: data.total ?? 0,
-                    pickupTime: data.pickupTime ?? "ASAP",
-                    paymentMethod: data.paymentMethod ?? "Cash",
-                    status: data.status ?? "new",
-                    createdAt: data.createdAt?.toDate?.()
-                      ? data.createdAt.toDate().toISOString()
-                      : data.createdAt ?? "",
-                  } as OrderData;
-                });
-                ordersList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                setOrders(ordersList);
-                const activeOrder = ordersList.find((o) => o.status !== "done");
-                setExpandedOrder(activeOrder?.id ?? ordersList[0]?.id ?? null);
-                setNotFound(false);
-              }
-            },
-            () => {
-              setError("Tracking not available yet. Contact us on WhatsApp!");
-            }
-          );
-        }
-      );
-    } catch (err) {
-      console.error("Firebase setup error:", err);
+      if (!active) return;
       setSearching(false);
       setHasSearched(true);
-      setError("Tracking not available yet. Contact us on WhatsApp!");
+
+      if (err) {
+        console.error("Supabase error:", err);
+        setError("Tracking not available yet. Contact us on WhatsApp!");
+        return;
+      }
+
+      const ordersList = (data ?? []).map((r) => rowToOrder(r as OrderRow) as unknown as OrderData);
+      if (ordersList.length === 0) {
+        setNotFound(true);
+        setOrders([]);
+        return;
+      }
+      setOrders(ordersList);
+      const activeOrder = ordersList.find((o) => o.status !== "done");
+      setExpandedOrder(activeOrder?.id ?? ordersList[0]?.id ?? null);
+      setNotFound(false);
     }
 
+    fetchOrders();
+
+    // Live updates: any insert/update/delete on this customer's orders
+    // re-runs the query so the page reflects status changes the moment
+    // the admin clicks "Confirmed" / "Ready".
+    const channel = supabase
+      .channel(`orders-track-${phone}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `phone=eq.${phone}`,
+        },
+        () => fetchOrders()
+      )
+      .subscribe();
+
     return () => {
-      if (unsubscribe) unsubscribe();
+      active = false;
+      supabase.removeChannel(channel);
     };
   }, [searching, phone]);
 

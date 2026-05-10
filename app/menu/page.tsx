@@ -9,8 +9,7 @@ import { combos } from "@/lib/combo-data";
 import ComboCard from "@/components/ComboCard";
 import MenuItem from "@/components/MenuItem";
 import { useCart } from "@/context/CartContext";
-import { db } from "@/lib/firebase";
-import { collection, onSnapshot } from "firebase/firestore";
+import { supabase } from "@/lib/supabase";
 
 const tabs = [
   { key: "Combos", emoji: "🎯", color: "text-[#FFD600]" },
@@ -35,27 +34,40 @@ export default function MenuPage() {
   const { totalItems, totalPrice } = useCart();
   const [menuAvailability, setMenuAvailability] = useState<Record<string, boolean>>({});
 
-  // Load menu availability from Firebase (admin-controlled)
+  // Load menu availability from Supabase (admin-controlled, real-time).
   useEffect(() => {
-    const unsub = onSnapshot(
-      collection(db, "menu_config"),
-      (snapshot) => {
-        const config: Record<string, boolean> = {};
-        snapshot.docs.forEach((d) => {
-          if (d.data().available !== undefined) {
-            config[d.id] = d.data().available;
-          }
-        });
-        setMenuAvailability(config);
-      },
-      () => {
-        // Firebase unavailable — all items available by default
-      }
-    );
-    return () => unsub();
+    let active = true;
+
+    async function loadConfig() {
+      const { data, error } = await supabase
+        .from("menu_config")
+        .select("item_id, available");
+      if (error || !active) return;
+      const config: Record<string, boolean> = {};
+      (data ?? []).forEach((row) => {
+        if (typeof row.available === "boolean") config[row.item_id] = row.available;
+      });
+      setMenuAvailability(config);
+    }
+
+    loadConfig();
+
+    const channel = supabase
+      .channel("menu_config-watch")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "menu_config" },
+        () => loadConfig()
+      )
+      .subscribe();
+
+    return () => {
+      active = false;
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  // Apply availability: if admin toggled it off in Firebase, override local data
+  // Apply availability: if admin toggled it off, override local data
   const applyAvailability = (items: typeof menuCategories[0]["items"]) =>
     items.map((item) => ({
       ...item,
@@ -255,7 +267,8 @@ export default function MenuPage() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed bottom-0 left-0 right-0 z-40 p-3"
+            style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
+            className="fixed bottom-0 left-0 right-0 z-40 px-3 pt-3"
           >
             <Link
               href="/checkout"

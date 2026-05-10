@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Minus, Plus, Trash2, Check, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import QRCode from "qrcode";
 import { useCart } from "@/context/CartContext";
+import { supabase } from "@/lib/supabase";
 import { generateOrderWhatsApp, generatePaymentWhatsApp } from "@/lib/whatsapp";
 import { buildUpiLink, SLOT_CAPACITY } from "@/lib/upi";
 
@@ -105,28 +106,23 @@ export default function CheckoutPage() {
   }, [pickupSlots, pickupTime]);
 
   // Load today's slot fill counts so we can grey out full slots in the
-  // dropdown. Best-effort: if Firebase is unreachable, allow all slots
-  // and rely on the submit-time recheck.
+  // dropdown. Best-effort: if the request fails, allow all slots and
+  // rely on the submit-time recheck.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const { collection, query, where, getDocs, limit, Timestamp } =
-          await import("firebase/firestore");
-        const { db } = await import("@/lib/firebase");
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
-        const q = query(
-          collection(db, "orders"),
-          where("createdAt", ">=", Timestamp.fromDate(startOfDay)),
-          limit(20)
-        );
-        const snap = await getDocs(q);
+        const { data } = await supabase
+          .from("orders")
+          .select("pickup_time, status")
+          .gte("created_at", startOfDay.toISOString())
+          .limit(200);
         const counts: Record<string, number> = {};
-        snap.docs.forEach((d) => {
-          const data = d.data();
-          if (data.status === "cancelled") return;
-          const slot = data.pickupTime;
+        (data ?? []).forEach((row) => {
+          if (row.status === "cancelled") return;
+          const slot = row.pickup_time;
           if (typeof slot === "string") counts[slot] = (counts[slot] || 0) + 1;
         });
         if (!cancelled) setSlotFill(counts);
@@ -176,97 +172,63 @@ export default function CheckoutPage() {
         paymentMethod,
       };
 
-      // Save to Firebase with a submit-time slot recheck and an
-      // idempotency guard. The idempotency guard catches the race where
-      // two requests fire from the same checkout session (double-tap,
-      // network retry) by aborting if a doc with the same key already
-      // exists.
+      // Save to Supabase. Submit-time slot recheck guards against two
+      // customers grabbing the same slot before either submits; the
+      // unique idempotency_key column handles double-tap / back-button
+      // resubmits.
       try {
-        const {
-          collection,
-          addDoc,
-          serverTimestamp,
-          query,
-          where,
-          getDocs,
-          limit,
-          Timestamp,
-        } = await import("firebase/firestore");
-        const { db, auth } = await import("@/lib/firebase");
-        const { signInAnonymously } = await import("firebase/auth");
-
-        // Ensure we have auth context for Firestore writes
-        if (!auth.currentUser) {
-          try {
-            await signInAnonymously(auth);
-          } catch {
-            // Continue without auth — may still work if rules allow it
-          }
-        }
-
-        // Idempotency: if this checkout session already produced an order
-        // doc, reuse it instead of creating a duplicate. This survives
-        // double-clicks and back-button resubmits.
         const idempotencyKey = idempotencyKeyRef.current;
-        const existingQ = query(
-          collection(db, "orders"),
-          where("idempotencyKey", "==", idempotencyKey),
-          limit(1)
-        );
-        const existingSnap = await getDocs(existingQ);
-        if (!existingSnap.empty) {
-          // Already saved — proceed straight to the post-save flow
-        } else {
-          // Submit-time slot capacity recheck. Two customers can pick the
-          // same slot before either submits; we re-count today's docs at
-          // write time and reject if the slot is full.
-          const startOfDay = new Date();
-          startOfDay.setHours(0, 0, 0, 0);
-          const slotQ = query(
-            collection(db, "orders"),
-            where("createdAt", ">=", Timestamp.fromDate(startOfDay)),
-            where("pickupTime", "==", pickupTime),
-            limit(20)
-          );
-          const slotSnap = await getDocs(slotQ);
-          const activeInSlot = slotSnap.docs.filter(
-            (d) => d.data().status !== "cancelled"
-          ).length;
-          if (activeInSlot >= SLOT_CAPACITY) {
-            setSlotFill((prev) => ({ ...prev, [pickupTime]: activeInSlot }));
-            setErrors({
-              pickupTime: `That slot just filled up. Please pick another time.`,
-            });
-            setPlacing(false);
-            setStep(2);
-            return;
-          }
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
 
-          const firebasePromise = addDoc(collection(db, "orders"), {
-            orderId: id,
-            idempotencyKey,
-            customerName: name.trim(),
-            phone: phone.trim(),
-            items: orderItems,
-            total: totalPrice,
-            pickupTime,
-            paymentMethod,
-            status: "new",
-            createdAt: serverTimestamp(),
+        const { data: slotRows } = await supabase
+          .from("orders")
+          .select("status")
+          .gte("created_at", startOfDay.toISOString())
+          .eq("pickup_time", pickupTime)
+          .limit(50);
+
+        const activeInSlot = (slotRows ?? []).filter(
+          (r) => r.status !== "cancelled"
+        ).length;
+        if (activeInSlot >= SLOT_CAPACITY) {
+          setSlotFill((prev) => ({ ...prev, [pickupTime]: activeInSlot }));
+          setErrors({
+            pickupTime: `That slot just filled up. Please pick another time.`,
           });
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Firebase timeout")), 8000)
-          );
-          await Promise.race([firebasePromise, timeoutPromise]);
-
-          // Update local slot fill so the user can't reuse the now-fuller slot
-          setSlotFill((prev) => ({
-            ...prev,
-            [pickupTime]: activeInSlot + 1,
-          }));
+          setPlacing(false);
+          setStep(2);
+          return;
         }
-      } catch (firebaseErr) {
-        console.error("Firebase save failed:", firebaseErr);
+
+        const insertPromise = supabase.from("orders").insert({
+          order_id: id,
+          idempotency_key: idempotencyKey,
+          customer_name: name.trim(),
+          phone: phone.trim(),
+          items: orderItems,
+          total: totalPrice,
+          pickup_time: pickupTime,
+          payment_method: paymentMethod,
+          status: "new",
+        });
+        const timeoutPromise = new Promise<{ error: Error }>((_, reject) =>
+          setTimeout(() => reject(new Error("Supabase timeout")), 8000)
+        );
+        const result = (await Promise.race([insertPromise, timeoutPromise])) as {
+          error: { code?: string; message?: string } | null;
+        };
+        // 23505 = unique_violation on idempotency_key — already saved, ignore.
+        if (result.error && result.error.code !== "23505") {
+          throw result.error;
+        }
+
+        setSlotFill((prev) => ({
+          ...prev,
+          [pickupTime]: activeInSlot + 1,
+        }));
+      } catch (saveErr) {
+        console.error("Supabase save failed:", saveErr);
         // Order will still proceed via WhatsApp but won't appear in admin dashboard
       }
 

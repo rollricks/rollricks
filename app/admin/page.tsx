@@ -2,20 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { db, auth } from "@/lib/firebase";
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  doc,
-  updateDoc,
-  getDocs,
-  setDoc,
-  where,
-  Timestamp,
-} from "firebase/firestore";
-import { signInWithEmailAndPassword, onAuthStateChanged } from "firebase/auth";
+import { supabase, rowToOrder, type OrderRow } from "@/lib/supabase";
 import { generateStatusWhatsApp } from "@/lib/whatsapp";
 import { allMenuItems } from "@/lib/menu-data";
 import OrderCard from "@/components/OrderCard";
@@ -52,8 +39,8 @@ export default function AdminPage() {
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeTab, setActiveTab] = useState("All");
-  const [firebaseError, setFirebaseError] = useState<string | null>(null);
-  const [firebaseErrorDetail, setFirebaseErrorDetail] = useState<{
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorDetail, setLoadErrorDetail] = useState<{
     code?: string;
     message?: string;
     authState?: string;
@@ -65,6 +52,7 @@ export default function AdminPage() {
     Record<string, boolean>
   >({});
   const [newOrderAlert, setNewOrderAlert] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const prevOrderCount = useRef(0);
   const isFirstLoad = useRef(true);
 
@@ -100,190 +88,161 @@ export default function AdminPage() {
     }
   }, []);
 
-  // Restore session on reload — if Firebase already has a signed-in
-  // user (persisted in IndexedDB), skip the login screen.
+  // Restore session on reload — Supabase persists the session in
+  // localStorage; check it on mount and skip the login screen.
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user && !user.isAnonymous) setIsLoggedIn(true);
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) setIsLoggedIn(true);
     });
-    return () => unsub();
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, session) => {
+      setIsLoggedIn(!!session?.user);
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
-  // Login handler — Firebase email/password only. The old env-var
-  // fallback was removed because (a) it bypassed Firestore auth context
-  // entirely, leaving rules effectively unenforced, and (b) credentials
-  // baked into NEXT_PUBLIC_ vars are visible to anyone who views the
-  // page source. Create a real Firebase Auth user in the console.
+  // Login handler — Supabase email/password.
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoginError(null);
     setLoggingIn(true);
 
     try {
-      const authPromise = signInWithEmailAndPassword(auth, adminId.trim(), password);
-      const timeoutPromise = new Promise((_, reject) =>
+      const authPromise = supabase.auth.signInWithPassword({
+        email: adminId.trim(),
+        password,
+      });
+      const timeoutPromise = new Promise<{ error: Error }>((_, reject) =>
         setTimeout(() => reject(new Error("Auth timeout — check your connection")), 8000)
       );
-      await Promise.race([authPromise, timeoutPromise]);
+      const { error } = (await Promise.race([authPromise, timeoutPromise])) as {
+        error: { message?: string } | null;
+      };
+      if (error) throw error;
       setIsLoggedIn(true);
     } catch (err) {
-      const code = (err as { code?: string }).code;
-      if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+      const msg = (err as { message?: string }).message || "Login failed.";
+      if (/invalid login credentials/i.test(msg)) {
         setLoginError("Invalid email or password.");
-      } else if (code === "auth/too-many-requests") {
+      } else if (/rate limit/i.test(msg)) {
         setLoginError("Too many failed attempts. Try again in a few minutes.");
-      } else if (code === "auth/network-request-failed") {
+      } else if (/network|fetch/i.test(msg)) {
         setLoginError("Network error. Check your internet connection.");
       } else {
-        setLoginError((err as Error).message || "Login failed.");
+        setLoginError(msg);
       }
     } finally {
       setLoggingIn(false);
     }
   }
 
-  // Listen to orders. Two cost-saving constraints applied here:
-  //   1. Only today's orders — without this, the listener pulls every
-  //      order ever for every reload, which would torch the Firestore
-  //      free tier the moment volume picked up.
-  //   2. The listener auto-detaches when the admin tab is in the
-  //      background (visibilitychange) and re-attaches on focus, so
-  //      reads aren't billed while the admin isn't looking.
+  // Listen to today's orders. Initial fetch + realtime channel that
+  // re-fetches on any change. The channel auto-detaches when the tab
+  // goes to background and re-attaches on focus to keep websocket
+  // usage low while the admin isn't looking.
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    let unsubscribe: (() => void) | null = null;
+    let active = true;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    function parseOrderDoc(d: import("firebase/firestore").QueryDocumentSnapshot): Order {
-      const data = d.data();
-      return {
-        id: d.id,
-        orderId: data.orderId ?? d.id.slice(0, 8).toUpperCase(),
-        customerName: data.customerName ?? data.name ?? "Customer",
-        phone: data.phone ?? "",
-        items: data.items ?? [],
-        total: data.total ?? 0,
-        pickupTime: data.pickupTime ?? "ASAP",
-        paymentMethod: data.paymentMethod ?? "Cash",
-        status: data.status ?? "new",
-        createdAt: data.createdAt?.toDate?.()
-          ? data.createdAt.toDate().toISOString()
-          : data.createdAt ?? new Date().toISOString(),
-      };
+    async function fetchOrders() {
+      try {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*")
+          .gte("created_at", startOfDay.toISOString())
+          .order("created_at", { ascending: false });
+        if (!active) return;
+        if (error) {
+          captureError(error);
+          return;
+        }
+        const ordersList = (data ?? []).map((r) => rowToOrder(r as OrderRow));
+        const newCount = ordersList.filter((o) => o.status === "new").length;
+        if (!isFirstLoad.current && newCount > prevOrderCount.current) {
+          playNotification();
+          setNewOrderAlert(true);
+          setTimeout(() => setNewOrderAlert(false), 3000);
+        }
+        prevOrderCount.current = newCount;
+        isFirstLoad.current = false;
+        setOrders(ordersList);
+        setLoadError(null);
+        setLoadErrorDetail(null);
+      } catch (err) {
+        captureError(err);
+      }
     }
 
-    function captureError(err: unknown, fallbackLabel: string) {
-      console.error(fallbackLabel, err);
+    function captureError(err: unknown) {
       const e = err as { code?: string; message?: string };
-      setFirebaseErrorDetail({
-        code: e.code,
-        message: e.message || String(err),
-        authState: auth.currentUser
-          ? `signed in (${auth.currentUser.isAnonymous ? "anon" : auth.currentUser.email || "user"}, uid=${auth.currentUser.uid.slice(0, 8)})`
-          : "not signed in",
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+      console.error("Orders load error:", e);
+      const session = supabase.auth.getSession();
+      session.then(({ data }) => {
+        setLoadErrorDetail({
+          code: e.code,
+          message: e.message || String(err),
+          authState: data.session?.user
+            ? `signed in (${data.session.user.email})`
+            : "not signed in",
+          projectId: process.env.NEXT_PUBLIC_SUPABASE_URL,
+        });
       });
-      if (e.code === "permission-denied") {
-        setFirebaseError(
-          "Permission denied — Firestore security rules rejected this read. See debug panel below."
+      if (/permission|policy|rls/i.test(e.message || "") || e.code === "42501") {
+        setLoadError(
+          "Permission denied — RLS policies rejected this read. Make sure the admin email in the policy matches the logged-in user."
         );
-      } else if (e.code === "unauthenticated") {
-        setFirebaseError(
-          "Not authenticated — admin login did not establish a Firebase auth context."
-        );
-      } else if (e.code === "failed-precondition") {
-        setFirebaseError(
-          "Missing Firestore index. Create the suggested index in Firebase console."
+      } else if (e.code === "PGRST301" || /jwt/i.test(e.message || "")) {
+        setLoadError(
+          "Not authenticated — admin login did not establish a Supabase session."
         );
       } else {
-        setFirebaseError(
+        setLoadError(
           `Could not load orders (${e.code || "unknown error"}). See debug panel below.`
         );
       }
     }
 
-    function attachListener() {
-      if (unsubscribe) return; // already attached
-      try {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-        const q = query(
-          collection(db, "orders"),
-          where("createdAt", ">=", Timestamp.fromDate(startOfDay)),
-          orderBy("createdAt", "desc")
-        );
-        unsubscribe = onSnapshot(
-          q,
-          (snapshot) => {
-            const ordersList = snapshot.docs.map(parseOrderDoc);
-            const newCount = ordersList.filter((o) => o.status === "new").length;
-            if (!isFirstLoad.current && newCount > prevOrderCount.current) {
-              playNotification();
-              setNewOrderAlert(true);
-              setTimeout(() => setNewOrderAlert(false), 3000);
-            }
-            prevOrderCount.current = newCount;
-            isFirstLoad.current = false;
-            setOrders(ordersList);
-            setFirebaseError(null);
-            setFirebaseErrorDetail(null);
-          },
-          (err) => {
-            // Fallback: drop the orderBy in case the composite index
-            // hasn't been created yet
-            if (unsubscribe) {
-              unsubscribe();
-              unsubscribe = null;
-            }
-            const fallbackQ = query(
-              collection(db, "orders"),
-              where("createdAt", ">=", Timestamp.fromDate(startOfDay))
-            );
-            unsubscribe = onSnapshot(
-              fallbackQ,
-              (snapshot) => {
-                const ordersList = snapshot.docs.map(parseOrderDoc);
-                ordersList.sort(
-                  (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-                );
-                setOrders(ordersList);
-                setFirebaseError(null);
-                setFirebaseErrorDetail(null);
-              },
-              (fallbackErr) => captureError(fallbackErr, "Orders fallback error:")
-            );
-            captureError(err, "Orders listener error:");
-          }
-        );
-      } catch (err) {
-        captureError(err, "Firebase setup error:");
+    function attach() {
+      if (channel) return;
+      channel = supabase
+        .channel("orders-admin")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "orders" },
+          () => fetchOrders()
+        )
+        .subscribe();
+    }
+
+    function detach() {
+      if (channel) {
+        supabase.removeChannel(channel);
+        channel = null;
       }
     }
 
-    function detachListener() {
-      if (unsubscribe) {
-        unsubscribe();
-        unsubscribe = null;
-      }
-    }
-
-    // Pause the listener while the tab is hidden, resume on focus.
     function handleVisibility() {
       if (document.visibilityState === "visible") {
-        attachListener();
+        fetchOrders();
+        attach();
       } else {
-        detachListener();
+        detach();
       }
     }
 
-    attachListener();
+    fetchOrders();
+    attach();
     document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      active = false;
       document.removeEventListener("visibilitychange", handleVisibility);
-      detachListener();
+      detach();
     };
-  }, [isLoggedIn]);
+  }, [isLoggedIn, playNotification]);
 
   // Load menu config
   useEffect(() => {
@@ -296,14 +255,12 @@ export default function AdminPage() {
 
     async function loadMenuConfig() {
       try {
-        // menu_config is publicly readable per the rules; no limit
-        // needed since it's small (~22 docs).
-        const snapshot = await getDocs(collection(db, "menu_config"));
+        const { data } = await supabase
+          .from("menu_config")
+          .select("item_id, available");
         const config: Record<string, boolean> = { ...defaults };
-        snapshot.docs.forEach((d) => {
-          if (d.data().available !== undefined) {
-            config[d.id] = d.data().available;
-          }
+        (data ?? []).forEach((row) => {
+          if (typeof row.available === "boolean") config[row.item_id] = row.available;
         });
         setMenuAvailability(config);
       } catch {
@@ -399,15 +356,38 @@ export default function AdminPage() {
     return { topSellers, maxCount, paymentBreakdown, statusBreakdown, totalRevenue, totalOrders, avgOrderValue, hourly };
   }, [orders]);
 
-  // Status change handler
+  // Status change handler. Uses .select() so we can detect the silent
+  // RLS-blocked-update case (Supabase returns 200 + 0 rows when the
+  // policy hides the row from the UPDATE target set). Optimistically
+  // updates local state so the button switches immediately instead of
+  // waiting for the realtime channel to round-trip.
   async function handleStatusChange(orderId: string, newStatus: string) {
-    try {
-      const orderDoc = orders.find((o) => o.orderId === orderId);
-      if (!orderDoc) return;
+    const orderDoc = orders.find((o) => o.orderId === orderId);
+    if (!orderDoc) return;
 
-      await updateDoc(doc(db, "orders", orderDoc.id), {
-        status: newStatus,
-      });
+    const previousStatus = orderDoc.status;
+
+    // Optimistic update — UI flips instantly
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderDoc.id ? { ...o, status: newStatus } : o))
+    );
+    setStatusError(null);
+
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .update({ status: newStatus })
+        .eq("id", orderDoc.id)
+        .select();
+
+      if (error) throw error;
+
+      // RLS silently filters: 0 rows back means the policy blocked us.
+      if (!data || data.length === 0) {
+        throw new Error(
+          "RLS blocked the update. Verify your admin email matches the policy (admin@rollricks.in)."
+        );
+      }
 
       if (newStatus === "confirmed" || newStatus === "ready" || newStatus === "done") {
         const statusLabel =
@@ -423,23 +403,42 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error("Status update failed:", err);
+      // Roll back the optimistic update
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderDoc.id ? { ...o, status: previousStatus } : o
+        )
+      );
+      const msg = (err as Error).message || "Update failed.";
+      setStatusError(msg);
+      setTimeout(() => setStatusError(null), 5000);
     }
   }
 
-  // Menu toggle handler
+  // Menu toggle handler — same RLS-aware pattern as handleStatusChange.
   async function handleMenuToggle(itemId: string) {
     const newVal = !menuAvailability[itemId];
     setMenuAvailability((prev) => ({ ...prev, [itemId]: newVal }));
+    setStatusError(null);
 
     try {
-      await setDoc(
-        doc(db, "menu_config", itemId),
-        { available: newVal },
-        { merge: true }
-      );
+      const { data, error } = await supabase
+        .from("menu_config")
+        .upsert({
+          item_id: itemId,
+          available: newVal,
+          updated_at: new Date().toISOString(),
+        })
+        .select();
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("RLS blocked the menu update. Check admin email.");
+      }
     } catch (err) {
       console.error("Menu toggle failed:", err);
       setMenuAvailability((prev) => ({ ...prev, [itemId]: !newVal }));
+      setStatusError((err as Error).message || "Menu update failed.");
+      setTimeout(() => setStatusError(null), 5000);
     }
   }
 
@@ -516,7 +515,7 @@ export default function AdminPage() {
           </h1>
           <button
             onClick={() => {
-              auth.signOut().catch(() => {});
+              supabase.auth.signOut().catch(() => {});
               setIsLoggedIn(false);
             }}
             className="px-3 py-1.5 rounded-lg border border-[#27272a] text-xs font-body text-[#a1a1aa] hover:border-[#E53935] hover:text-[#E53935] transition-colors"
@@ -559,42 +558,56 @@ export default function AdminPage() {
         )}
       </AnimatePresence>
 
-      {firebaseError ? (
+      {/* Status update error toast */}
+      <AnimatePresence>
+        {statusError && (
+          <motion.div
+            initial={{ y: -60, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -60, opacity: 0 }}
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-xl bg-[#E53935] text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#E53935]/30 max-w-[calc(100vw-2rem)] text-center"
+          >
+            {statusError}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {loadError ? (
         <div className="max-w-2xl mx-auto px-4 py-12 space-y-4">
           <div className="rounded-xl bg-[#E53935]/10 border border-[#E53935]/30 p-6 text-center">
             <p className="text-[#E53935] font-body font-medium text-lg">
-              {firebaseError}
+              {loadError}
             </p>
           </div>
-          {firebaseErrorDetail && (
+          {loadErrorDetail && (
             <div className="rounded-xl bg-[#111] border border-[#27272a] p-5 font-mono text-xs text-[#a1a1aa] space-y-2">
               <p className="text-[#FFD600] font-bold uppercase tracking-wider text-[10px] font-body">
                 Debug info — share with support
               </p>
               <div className="break-all">
                 <span className="text-[#71717a]">code:</span>{" "}
-                <span className="text-[#e4e4e7]">{firebaseErrorDetail.code || "—"}</span>
+                <span className="text-[#e4e4e7]">{loadErrorDetail.code || "—"}</span>
               </div>
               <div className="break-all">
                 <span className="text-[#71717a]">message:</span>{" "}
-                <span className="text-[#e4e4e7]">{firebaseErrorDetail.message || "—"}</span>
+                <span className="text-[#e4e4e7]">{loadErrorDetail.message || "—"}</span>
               </div>
               <div className="break-all">
                 <span className="text-[#71717a]">auth:</span>{" "}
-                <span className="text-[#e4e4e7]">{firebaseErrorDetail.authState || "—"}</span>
+                <span className="text-[#e4e4e7]">{loadErrorDetail.authState || "—"}</span>
               </div>
               <div className="break-all">
                 <span className="text-[#71717a]">project:</span>{" "}
-                <span className="text-[#e4e4e7]">{firebaseErrorDetail.projectId || "(env var missing!)"}</span>
+                <span className="text-[#e4e4e7]">{loadErrorDetail.projectId || "(env var missing!)"}</span>
               </div>
               <p className="text-[#71717a] pt-2 font-body">
-                {!firebaseErrorDetail.projectId
-                  ? "→ NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in Vercel. Add all NEXT_PUBLIC_FIREBASE_* env vars in Vercel → Project Settings → Environment Variables, then redeploy."
-                  : firebaseErrorDetail.code === "permission-denied"
-                  ? "→ Firestore security rules are blocking reads. Either tighten admin auth (use a real Firebase user instead of env-var fallback) or relax the rules for the orders collection during testing."
-                  : firebaseErrorDetail.code === "unauthenticated"
-                  ? "→ Anonymous Auth is likely disabled in Firebase Console. Enable it under Authentication → Sign-in method → Anonymous."
-                  : "→ Open Firebase Console → Firestore → check if the orders collection has any documents. If empty, the customer write path is failing. If it has docs, share the error code above."}
+                {!loadErrorDetail.projectId
+                  ? "→ NEXT_PUBLIC_SUPABASE_URL is not set. Add Supabase env vars in .env.local (and in Vercel for prod), then restart the dev server."
+                  : /permission|policy/i.test(loadErrorDetail.message || "")
+                  ? "→ RLS policy on orders is rejecting this read. Verify the admin email in the policy matches the email of the logged-in Supabase Auth user."
+                  : /jwt/i.test(loadErrorDetail.message || "")
+                  ? "→ Session expired. Log out and back in."
+                  : "→ Open Supabase Dashboard → Table Editor → orders → check for rows. If empty, the customer write path is failing. If rows exist, share the message above."}
               </p>
             </div>
           )}

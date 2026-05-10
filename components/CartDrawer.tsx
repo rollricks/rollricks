@@ -134,7 +134,10 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 </ul>
 
                 {/* Footer */}
-                <div className="sticky bottom-0 bg-[#111] border-t border-[#27272a] px-5 py-4 space-y-3">
+                <div
+                  className="sticky bottom-0 bg-[#111] border-t border-[#27272a] px-5 pt-4 space-y-3"
+                  style={{ paddingBottom: "calc(16px + env(safe-area-inset-bottom))" }}
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-[#71717a]">Subtotal</span>
                     <span className="font-display text-lg text-[#FFD600]">
