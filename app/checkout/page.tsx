@@ -7,7 +7,7 @@ import { Minus, Plus, Trash2, Check, ArrowLeft, ArrowRight, Loader2 } from "luci
 import QRCode from "qrcode";
 import { useCart } from "@/context/CartContext";
 import { supabase } from "@/lib/supabase";
-import { generateOrderWhatsApp, generatePaymentWhatsApp } from "@/lib/whatsapp";
+import { generateOrderWhatsApp, generatePaymentWhatsApp, WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { buildUpiLink, SLOT_CAPACITY } from "@/lib/upi";
 
 type Step = 1 | 2 | 3;
@@ -76,6 +76,13 @@ export default function CheckoutPage() {
   const [showQR, setShowQR] = useState(false);
   const [upiLink, setUpiLink] = useState("");
   const [qrDataUrl, setQrDataUrl] = useState("");
+
+  // Did the order persist to Supabase (the admin dashboard)? WhatsApp is the
+  // fallback channel, so on a DB failure we still let the order through but
+  // warn the customer — a silent DB failure must never look like success.
+  const [savedToDb, setSavedToDb] = useState(true);
+  // Inline error shown at the submit button when placing fails outright.
+  const [submitError, setSubmitError] = useState("");
 
   // Slot fill counts (slot label -> count of non-cancelled orders for today)
   const [slotFill, setSlotFill] = useState<Record<string, number>>({});
@@ -151,6 +158,8 @@ export default function CheckoutPage() {
   const handlePlaceOrder = async () => {
     if (placing) return;
     setPlacing(true);
+    setSubmitError("");
+    let dbSaved = true;
 
     try {
       const id = generateId();
@@ -229,8 +238,11 @@ export default function CheckoutPage() {
         }));
       } catch (saveErr) {
         console.error("Supabase save failed:", saveErr);
-        // Order will still proceed via WhatsApp but won't appear in admin dashboard
+        // Order proceeds via WhatsApp but won't reach the admin dashboard.
+        // Flag it so the success screen warns the customer to confirm by call.
+        dbSaved = false;
       }
+      setSavedToDb(dbSaved);
 
       // If Pay Online, build the dynamic UPI link + QR for THIS order
       if (paymentMethod === "Pay Online — UPI via WhatsApp") {
@@ -266,7 +278,9 @@ export default function CheckoutPage() {
       idempotencyKeyRef.current = generateId();
     } catch (err) {
       console.error("Order placement error:", err);
-      alert("Something went wrong. Please try again.");
+      setSubmitError(
+        "We couldn't place your order just now. Please check your connection and try again."
+      );
     } finally {
       setPlacing(false);
     }
@@ -392,6 +406,26 @@ export default function CheckoutPage() {
             <p className="text-sm text-[#71717a] mb-1">Order ID</p>
             <p className="font-mono text-2xl text-[#FFD600]">#{orderId}</p>
           </div>
+
+          {!savedToDb && (
+            <div className="bg-[#F59E0B]/10 border border-[#F59E0B]/40 rounded-xl px-5 py-4 text-left">
+              <p className="text-sm text-[#FBBF24] font-semibold mb-1">
+                Please confirm your order
+              </p>
+              <p className="text-xs text-[#a1a1aa] leading-relaxed">
+                We sent it on WhatsApp, but couldn&apos;t confirm it on our
+                system. If you don&apos;t hear back in a few minutes, please
+                call us at{" "}
+                <a
+                  href={`tel:+${WHATSAPP_NUMBER}`}
+                  className="text-[#FBBF24] underline"
+                >
+                  +{WHATSAPP_NUMBER}
+                </a>
+                .
+              </p>
+            </div>
+          )}
 
           <Link
             href="/track"
@@ -819,11 +853,19 @@ export default function CheckoutPage() {
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Placing Order...
                     </>
+                  ) : submitError ? (
+                    "Retry Order"
                   ) : (
                     "Place Order"
                   )}
                 </button>
               </div>
+
+              {submitError && (
+                <p className="text-[#E53935] text-sm text-center mt-3" role="alert">
+                  {submitError}
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

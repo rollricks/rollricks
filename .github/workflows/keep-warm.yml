@@ -1,0 +1,24 @@
+name: Keep Supabase warm
+
+# Free Supabase projects go cold on inactivity (and pause after ~7 days),
+# which is what makes the first order of a quiet day feel slow. This pings
+# a tiny read every 10 minutes so the project stays awake. The anon key is
+# public by design (it ships in the site's JS), but we keep it in repo
+# secrets to avoid hardcoding.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST
+        run: |
+          curl -fsS \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            "${{ secrets.SUPABASE_URL }}/rest/v1/menu_config?select=item_id&limit=1" \
+            > /dev/null && echo "Supabase is warm."
