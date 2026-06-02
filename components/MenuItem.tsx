@@ -10,6 +10,9 @@ interface MenuItemProps {
   item: MenuItemType;
 }
 
+// Photo-forward card. Mobile shows two per row (the menu page grid is
+// grid-cols-2), so the photo does the selling and the name/price/add
+// sit beneath it. Cart logic is unchanged from the old row layout.
 export default function MenuItem({ item }: MenuItemProps) {
   const { items, addItem, updateQuantity } = useCart();
   const [justAdded, setJustAdded] = useState(false);
@@ -30,120 +33,123 @@ export default function MenuItem({ item }: MenuItemProps) {
     setTimeout(() => setJustAdded(false), 800);
   };
 
-  return (
-    <motion.div
-      whileTap={unavailable ? {} : { scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className={`flex items-center gap-3 rounded-xl bg-[#111] border border-[#27272a] px-3 py-3 sm:px-4 ${
-        unavailable ? "opacity-50 pointer-events-none" : ""
+  const VegDot = (
+    <span
+      className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center bg-[#09090b]/80 backdrop-blur ${
+        item.type === "veg" ? "border-[#22C55E]" : "border-[#E53935]"
       }`}
     >
-      {/* Thumbnail (with veg/non-veg dot in corner). Hidden on the
-          smallest phones to keep the row from wrapping. */}
-      {item.image ? (
-        <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-lg overflow-hidden bg-[#27272a]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+      <span
+        className={`w-2 h-2 rounded-full ${
+          item.type === "veg" ? "bg-[#22C55E]" : "bg-[#E53935]"
+        }`}
+      />
+    </span>
+  );
+
+  return (
+    <motion.div
+      whileTap={unavailable ? {} : { scale: 0.985 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      className={`group flex flex-col rounded-2xl bg-[#111] border border-[#27272a] overflow-hidden hover:border-[#3f3f46] transition-colors ${
+        unavailable ? "opacity-60" : ""
+      }`}
+    >
+      {/* ── Photo ── */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#1a1a1a]">
+        {item.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={item.image}
             alt={item.name}
             loading="lazy"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-active:scale-[1.03] transition-transform duration-300"
           />
-          <span
-            className={`absolute top-1 left-1 w-3 h-3 rounded-sm border-2 flex items-center justify-center bg-[#09090b]/80 ${
-              item.type === "veg" ? "border-[#22C55E]" : "border-[#E53935]"
-            }`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                item.type === "veg" ? "bg-[#22C55E]" : "bg-[#E53935]"
-              }`}
-            />
-          </span>
-        </div>
-      ) : (
-        <span
-          className={`w-3 h-3 rounded-sm border-2 flex items-center justify-center flex-shrink-0 ${
-            item.type === "veg" ? "border-[#22C55E]" : "border-[#E53935]"
-          }`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              item.type === "veg" ? "bg-[#22C55E]" : "bg-[#E53935]"
-            }`}
-          />
-        </span>
-      )}
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-3xl bg-gradient-to-br from-[#1f1f23] to-[#111]">
+            🍽️
+          </div>
+        )}
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-medium text-[#e4e4e7]">
-            {item.name}
-          </p>
-          {item.badge && !unavailable && (
-            <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#FFD600]/10 text-[#FFD600] border border-[#FFD600]/20">
-              {item.badge}
+        {/* veg/non-veg dot */}
+        <span className="absolute top-2 left-2">{VegDot}</span>
+
+        {/* badge */}
+        {item.badge && !unavailable && (
+          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#FFD600] text-[#09090b] shadow">
+            {item.badge}
+          </span>
+        )}
+
+        {/* unavailable overlay */}
+        {unavailable && (
+          <div className="absolute inset-0 bg-[#09090b]/65 flex items-center justify-center">
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#27272a] text-[#a1a1aa] border border-[#3f3f46]">
+              Sold out
             </span>
-          )}
-          {unavailable && (
-            <span className="flex-shrink-0 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#71717a]/20 text-[#71717a] border border-[#71717a]/20">
-              Unavailable
-            </span>
-          )}
-        </div>
-        {item.description && (
-          <p className="text-[11px] text-[#71717a] mt-0.5 line-clamp-1">
-            {item.description}
-          </p>
+          </div>
         )}
       </div>
 
-      {/* Price */}
-      <div className="flex-shrink-0">
-        <span className="font-display text-lg text-[#FFD600]">
-          ₹{item.price}
-        </span>
-      </div>
+      {/* ── Body ── */}
+      <div className="flex flex-col flex-1 p-3 gap-1">
+        <p className="text-sm font-semibold text-[#e4e4e7] leading-tight line-clamp-2">
+          {item.name}
+        </p>
+        {item.description && (
+          <p className="text-[11px] text-[#71717a] leading-snug line-clamp-2">
+            {item.description}
+          </p>
+        )}
 
-      {/* Add / Quantity controls */}
-      {!unavailable && (
-        <div className="flex-shrink-0">
-          {quantity === 0 ? (
-            <button
-              onClick={handleAdd}
-              className={`w-9 h-9 flex items-center justify-center rounded-lg active:scale-90 transition-all ${
-                justAdded
-                  ? "bg-[#22C55E] text-white"
-                  : "bg-[#FFD600] text-[#09090b] hover:brightness-110"
-              }`}
-              aria-label={`Add ${item.name} to cart`}
-            >
-              {justAdded ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            </button>
-          ) : (
-            <div className="flex items-center gap-1">
+        {/* price + add */}
+        <div className="mt-auto pt-2 flex items-center justify-between gap-2">
+          <span className="font-display text-xl text-[#FFD600] leading-none">
+            ₹{item.price}
+          </span>
+
+          {!unavailable &&
+            (quantity === 0 ? (
               <button
-                onClick={() => updateQuantity(item.id, quantity - 1)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#27272a] hover:bg-[#3f3f46] active:scale-90 transition-all"
-                aria-label="Decrease quantity"
+                onClick={handleAdd}
+                className={`h-9 px-3 flex items-center justify-center gap-1 rounded-lg font-bold text-sm active:scale-90 transition-all ${
+                  justAdded
+                    ? "bg-[#22C55E] text-white"
+                    : "bg-[#FFD600] text-[#09090b] hover:brightness-110"
+                }`}
+                aria-label={`Add ${item.name} to cart`}
               >
-                <Minus className="w-3.5 h-3.5" />
+                {justAdded ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4" /> Add
+                  </>
+                )}
               </button>
-              <span className="text-sm font-mono w-6 text-center font-bold">
-                {quantity}
-              </span>
-              <button
-                onClick={() => updateQuantity(item.id, quantity + 1)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#FFD600] text-[#09090b] hover:brightness-110 active:scale-90 transition-all"
-                aria-label="Increase quantity"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => updateQuantity(item.id, quantity - 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#27272a] hover:bg-[#3f3f46] active:scale-90 transition-all"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <span className="text-sm font-mono w-5 text-center font-bold">
+                  {quantity}
+                </span>
+                <button
+                  onClick={() => updateQuantity(item.id, quantity + 1)}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#FFD600] text-[#09090b] hover:brightness-110 active:scale-90 transition-all"
+                  aria-label="Increase quantity"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
         </div>
-      )}
+      </div>
     </motion.div>
   );
 }

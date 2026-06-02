@@ -164,7 +164,7 @@ export default function MenuPage() {
                         <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-wider">VEG</span>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       {applyAvailability(category.items).map((item) => (
                         <MenuItem key={item.id} item={item} />
                       ))}
@@ -195,7 +195,7 @@ export default function MenuPage() {
                         <span className="text-[10px] font-bold text-[#E53935] uppercase tracking-wider">NON-VEG</span>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2.5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                       {applyAvailability(category.items).map((item) => (
                         <MenuItem key={item.id} item={item} />
                       ))}
@@ -218,7 +218,7 @@ export default function MenuPage() {
                     <p className="text-xs text-[#71717a]">{drinksCategory.items.length} items</p>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                   {applyAvailability(drinksCategory.items).map((item) => (
                     <MenuItem key={item.id} item={item} />
                   ))}
