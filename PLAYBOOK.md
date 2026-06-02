@@ -1,6 +1,11 @@
 # RollRicks Playbook
 
-**Last updated:** 2026-05-10 · **Stack:** Next.js 14 + Supabase · **Owner:** rollricks11@gmail.com
+**Last updated:** 2026-06-02 · **Stack:** Next.js 14 + Supabase · **Owner:** rollricks11@gmail.com
+
+> **2026-06-02 migration:** Backend moved from Tokyo (`hjbfxemikldncqvguhuk`, `ap-northeast-1`)
+> to **Mumbai** (`yqmfygasjqebdgbxsaoi`, `ap-south-1`) for lower latency to Indian customers.
+> New admin password was generated on migration (see `.supabase-db-pass.txt`, gitignored) —
+> change it in Supabase Auth and store in your password manager. Old Tokyo project pending decommission.
 
 ---
 
@@ -10,8 +15,8 @@
 |---|---|---|
 | Website | `E:\Roll\rollricks` | Next.js 14 App Router, TypeScript, Tailwind, Framer Motion |
 | Local dev URL | http://localhost:3001 | (port 3000 was busy) — start with `npm run dev` |
-| Backend | Supabase project `hjbfxemikldncqvguhuk` | https://supabase.com/dashboard/project/hjbfxemikldncqvguhuk |
-| Admin login | `admin@rollricks.in` | Password lives in your password manager — Supabase Auth user |
+| Backend | Supabase project `yqmfygasjqebdgbxsaoi` (Mumbai, `ap-south-1`) | https://supabase.com/dashboard/project/yqmfygasjqebdgbxsaoi |
+| Admin login | `admin@rollricks.in` | New password set 2026-06-02 (in `.supabase-db-pass.txt`) — change it & store in password manager |
 | WhatsApp | +91 8918791675 | Used for order notifications via `wa.me` deep links |
 
 ### Pages

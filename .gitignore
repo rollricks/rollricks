@@ -42,3 +42,7 @@ next-env.d.ts
 # Supabase CLI local state
 supabase/.temp/
 supabase/.branches/
+
+.supabase-db-pass.txt
+.env.local.tokyo.bak
+.env*.bak
