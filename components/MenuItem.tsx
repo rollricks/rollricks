@@ -38,14 +38,42 @@ export default function MenuItem({ item }: MenuItemProps) {
         unavailable ? "opacity-50 pointer-events-none" : ""
       }`}
     >
-      {/* Veg / Nonveg indicator */}
-      <span className={`w-3 h-3 rounded-sm border-2 flex items-center justify-center flex-shrink-0 ${
-        item.type === "veg" ? "border-[#22C55E]" : "border-[#E53935]"
-      }`}>
-        <span className={`w-1.5 h-1.5 rounded-full ${
-          item.type === "veg" ? "bg-[#22C55E]" : "bg-[#E53935]"
-        }`} />
-      </span>
+      {/* Thumbnail (with veg/non-veg dot in corner). Hidden on the
+          smallest phones to keep the row from wrapping. */}
+      {item.image ? (
+        <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-lg overflow-hidden bg-[#27272a]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.image}
+            alt={item.name}
+            loading="lazy"
+            className="w-full h-full object-cover"
+          />
+          <span
+            className={`absolute top-1 left-1 w-3 h-3 rounded-sm border-2 flex items-center justify-center bg-[#09090b]/80 ${
+              item.type === "veg" ? "border-[#22C55E]" : "border-[#E53935]"
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                item.type === "veg" ? "bg-[#22C55E]" : "bg-[#E53935]"
+              }`}
+            />
+          </span>
+        </div>
+      ) : (
+        <span
+          className={`w-3 h-3 rounded-sm border-2 flex items-center justify-center flex-shrink-0 ${
+            item.type === "veg" ? "border-[#22C55E]" : "border-[#E53935]"
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              item.type === "veg" ? "bg-[#22C55E]" : "bg-[#E53935]"
+            }`}
+          />
+        </span>
+      )}
 
       {/* Info */}
       <div className="flex-1 min-w-0">

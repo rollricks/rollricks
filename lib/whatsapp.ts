@@ -1,5 +1,5 @@
 export const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "918918791675";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://rollricks.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://rollricks.in";
 
 export type OrderDetails = {
   orderId: string;

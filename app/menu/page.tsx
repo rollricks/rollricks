@@ -16,7 +16,6 @@ const tabs = [
   { key: "Veg", emoji: "🟢", color: "text-[#22C55E]" },
   { key: "Non-Veg", emoji: "🔴", color: "text-[#E53935]" },
   { key: "Drinks", emoji: "🥤", color: "text-[#3B82F6]" },
-  { key: "Desserts", emoji: "🍫", color: "text-[#8B5CF6]" },
 ] as const;
 
 type Tab = (typeof tabs)[number]["key"];
@@ -26,7 +25,6 @@ const tabColors: Record<Tab, string> = {
   Veg: "#22C55E",
   "Non-Veg": "#E53935",
   Drinks: "#3B82F6",
-  Desserts: "#8B5CF6",
 };
 
 export default function MenuPage() {
@@ -77,10 +75,7 @@ export default function MenuPage() {
   const color = tabColors[activeTab];
 
   const vegCategories = menuCategories.filter(
-    (cat) =>
-      cat.items[0]?.type === "veg" &&
-      cat.name !== "Drinks" &&
-      cat.name !== "Desserts"
+    (cat) => cat.items[0]?.type === "veg" && cat.name !== "Drinks"
   );
 
   const nonVegCategories = menuCategories.filter(
@@ -89,10 +84,6 @@ export default function MenuPage() {
 
   const drinksCategory = menuCategories.find(
     (cat) => cat.name === "Drinks"
-  );
-
-  const dessertsCategory = menuCategories.find(
-    (cat) => cat.name === "Desserts"
   );
 
   return (
@@ -235,26 +226,6 @@ export default function MenuPage() {
               </div>
             )}
 
-            {activeTab === "Desserts" && dessertsCategory && (
-              <div>
-                <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-[#8B5CF6]/30">
-                  <div className="w-10 h-10 rounded-xl bg-[#8B5CF6]/10 flex items-center justify-center text-xl">
-                    {dessertsCategory.emoji}
-                  </div>
-                  <div>
-                    <h3 className="font-display text-xl text-[#8B5CF6] tracking-wider">
-                      {dessertsCategory.name.toUpperCase()}
-                    </h3>
-                    <p className="text-xs text-[#71717a]">{dessertsCategory.items.length} items</p>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2.5">
-                  {applyAvailability(dessertsCategory.items).map((item) => (
-                    <MenuItem key={item.id} item={item} />
-                  ))}
-                </div>
-              </div>
-            )}
           </motion.div>
         </AnimatePresence>
       </div>

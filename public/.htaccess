@@ -1,0 +1,81 @@
+# RollRicks — Hostinger (Apache / LiteSpeed) configuration
+# Drop this file at the root of public_html alongside index.html
+
+# ─────────────────────────────────────────────────────────
+# Force HTTPS (Hostinger provides free Let's Encrypt SSL).
+# Comment this block out if SSL isn't yet provisioned.
+# ─────────────────────────────────────────────────────────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+</IfModule>
+
+# ─────────────────────────────────────────────────────────
+# Pretty URLs: /menu  →  /menu/index.html
+# Next.js with trailingSlash:true emits /menu/index.html so this only
+# helps when someone hits /menu without the trailing slash.
+# ─────────────────────────────────────────────────────────
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # If the request maps to an existing file or directory, serve it as-is.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Add trailing slash for clean URLs
+  RewriteCond %{REQUEST_URI} !(/$|\.)
+  RewriteRule (.*) %{REQUEST_URI}/ [R=301,L]
+</IfModule>
+
+# ─────────────────────────────────────────────────────────
+# 404 page
+# ─────────────────────────────────────────────────────────
+ErrorDocument 404 /404.html
+
+# ─────────────────────────────────────────────────────────
+# Cache static assets aggressively. Next.js gives JS/CSS chunks
+# content-hashed filenames, so a long max-age is safe — a new build
+# produces new hashes and the browser fetches fresh files.
+# ─────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+  # Hashed chunks (immutable for the life of the deploy)
+  <FilesMatch "\.(js|css|woff2?)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # Images
+  <FilesMatch "\.(png|jpg|jpeg|gif|svg|ico|webp|avif)$">
+    Header set Cache-Control "public, max-age=2592000"
+  </FilesMatch>
+
+  # HTML — short cache so deploys land fast
+  <FilesMatch "\.html$">
+    Header set Cache-Control "public, max-age=300, must-revalidate"
+  </FilesMatch>
+
+  # Basic security headers
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ─────────────────────────────────────────────────────────
+# Compression — LiteSpeed enables this by default but Apache may not.
+# ─────────────────────────────────────────────────────────
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/javascript application/json image/svg+xml
+</IfModule>
+
+# ─────────────────────────────────────────────────────────
+# MIME types (most are auto-set by Apache; these are the few that can
+# be missing on shared hosting)
+# ─────────────────────────────────────────────────────────
+<IfModule mod_mime.c>
+  AddType application/javascript .js
+  AddType application/json .json
+  AddType font/woff2 .woff2
+  AddType image/webp .webp
+  AddType image/svg+xml .svg
+</IfModule>

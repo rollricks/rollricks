@@ -128,12 +128,15 @@ export default function HomePage() {
           <h2 className="font-display text-4xl md:text-5xl text-[#e4e4e7] tracking-wider text-center mb-3">
             TODAY&apos;S HITS
           </h2>
-          <p className="text-center text-sm text-[#71717a] font-body mb-10">
+          <p className="text-center text-sm text-[#71717a] font-body mb-2">
             Tap &ldquo;Add to Cart&rdquo; and checkout instantly
+          </p>
+          <p className="text-center text-xs text-[#FFD600] font-body mb-10 font-semibold tracking-wider">
+            FROM ₹99 STUDENT PACK TO ₹679 FAMILY FEAST
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
           {featuredCombos.map((combo, i) => (
             <motion.div
               key={combo.id}

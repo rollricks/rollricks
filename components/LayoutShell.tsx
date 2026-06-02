@@ -6,7 +6,9 @@ import WhatsAppBtn from "./WhatsAppBtn";
 
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAdmin = pathname === "/admin";
+  // next.config sets trailingSlash:true, so pathname is "/admin/" in
+  // production — the previous strict-equal check missed that.
+  const isAdmin = pathname === "/admin" || pathname === "/admin/";
 
   return (
     <>
