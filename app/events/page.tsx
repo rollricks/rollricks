@@ -44,7 +44,9 @@ const birthdayPackages = [
     icon: Cake,
     tier: "KIDS BIRTHDAY",
     name: "MINI ROCKSTAR",
-    people: "Up to 25 kids",
+    people: "From 15 kids",
+    perPlate: 249,
+    minGuests: 15,
     image: IMG.birthdayKids,
     pitch:
       "Mini-size rolls, fruity mojitos, balloons on the cart and a custom name signage so the birthday star is the star of the cart.",
@@ -54,7 +56,9 @@ const birthdayPackages = [
     icon: Sparkles,
     tier: "TEEN / SWEET 16",
     name: "INSTA-WORTHY",
-    people: "30–50 guests",
+    people: "From 30 guests",
+    perPlate: 349,
+    minGuests: 30,
     image: IMG.birthdayCake,
     pitch:
       "Reel-ready cart with fairy lights, full bestseller menu, custom name signage and a photo backdrop. Designed to look insane on stories.",
@@ -64,7 +68,9 @@ const birthdayPackages = [
     icon: Star,
     tier: "MILESTONE",
     name: "THE BIG DAY",
-    people: "50+ guests",
+    people: "From 50 guests",
+    perPlate: 449,
+    minGuests: 50,
     image: IMG.birthdayMilestone,
     pitch:
       "Live tandoor on-site, full menu unlocked, branded cart, 2 helpers + chef. The kind of party people still talk about months later.",
@@ -82,58 +88,71 @@ const eventTypes = [
   { label: "Engagement", image: IMG.engagement, popular: false },
 ];
 
-// ─── General event packages (existing, with images added) ───
+// ─── Per-plate event packages ───────────────────────────────
+//
+// PRICING MODEL (balanced ~45% gross margin). Each plate price is
+// built so it covers everything, not just the food:
+//
+//   plate price ≈ ( food cost + packaging + staff share ) ÷ 0.55
+//     • food cost   ≈ 35% of the on-menu value of the plate's items
+//     • packaging   ≈ ₹20–25 per plate
+//     • staff share ≈ cart-staff wages ÷ guest count
+//
+//   Snack   (1 roll + cooler)                    ≈ ₹249/plate
+//   Classic (roll + Chinese + cooler)            ≈ ₹349/plate
+//   Feast   (roll + Chinese + tandoor + cooler + dessert) ≈ ₹449/plate
+//
+// Package "price" = perPlate × the headline guest count, rounded to a
+// clean number. To re-price, change perPlate and the model holds.
 const packages = [
   {
-    tier: "STARTER",
-    name: "THE STARTER",
-    people: "40–50 people",
-    occasion: "Small gatherings",
+    tier: "20–30 GUESTS",
+    name: "SNACK PARTY",
+    people: "Kids' parties & small get-togethers",
+    occasion: "≈ 20 guests",
+    perPlate: 249,
     price: "5,999",
     image: IMG.houseParty,
     includes: [
-      "50 Rolls",
-      "25 drinks",
-      "Basic setup",
-      "1.5 hr service",
-      "Eco packaging",
+      "1 signature roll + 1 cooler per guest",
+      "Veg & non-veg options",
+      "Live cart setup · 1.5 hr service",
+      "Eco packaging included",
+      "Balloons + name signage for kids",
     ],
     badge: null,
     highlight: false,
   },
   {
-    tier: "STANDARD",
-    name: "THE STANDARD",
-    people: "80–100 people",
-    occasion: "Birthdays + house parties",
+    tier: "30–50 GUESTS",
+    name: "CLASSIC FEAST",
+    people: "Birthdays, house & office parties",
+    occasion: "≈ 35 guests",
+    perPlate: 349,
     price: "11,999",
     image: IMG.cart,
     includes: [
-      "100 Rolls",
-      "50 drinks",
-      "Live counter setup",
-      "3 hr service",
+      "1 roll + 1 Chinese (noodles / fried rice) + 1 cooler per guest",
+      "Full veg & non-veg choice",
+      "Live counter · 3 hr service · 1 helper",
       "Branded packaging",
-      "1 helper",
     ],
     badge: "Most Popular",
     highlight: true,
   },
   {
-    tier: "PREMIUM",
-    name: "THE FULL DEPLOY",
-    people: "150+ people",
-    occasion: "Weddings + big events",
+    tier: "50+ GUESTS",
+    name: "THE BIG DEPLOY",
+    people: "Weddings, milestones & big events",
+    occasion: "≈ 50 guests",
+    perPlate: 449,
     price: "21,999+",
     image: IMG.wedding,
     includes: [
-      "Unlimited rolls + tandoor",
-      "Full drinks menu",
-      "Live branded cart",
-      "5+ hr service",
-      "2 helpers + chef",
-      "Custom signage",
-      "Photo-ready decor",
+      "Roll + Chinese + tandoor skewer + cooler + dessert per guest",
+      "Live tandoor counter on-site",
+      "5+ hr service · 2 helpers + chef",
+      "Custom branding + photo-ready decor",
     ],
     badge: null,
     highlight: false,
@@ -474,24 +493,37 @@ export default function EventsPage() {
                     </span>
                   </span>
 
-                  {/* Pricing intentionally hidden — every birthday is
-                      quoted on a quick call so we can flex the menu,
-                      decor, hours and headcount to what the host
-                      actually wants. Showing a number anchors people on
-                      cost; hiding it sells the experience. */}
-                  <div className="pt-3 border-t border-[#27272a] flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-[#FF6B9D]/15 flex items-center justify-center flex-shrink-0">
-                      <Star className="w-4 h-4 text-[#FF6B9D]" />
-                    </div>
+                  {/* Per-plate anchor — all-inclusive (food + packaging +
+                      cart staff). Sets a clear, honest floor while the
+                      WhatsApp CTA still lets us tailor menu/decor/hours. */}
+                  <div className="pt-3 border-t border-[#27272a] flex items-end justify-between gap-3">
                     <div>
                       <p className="text-[11px] uppercase tracking-widest text-[#71717a] font-body">
-                        Fully Custom
+                        Starting at
                       </p>
-                      <p className="text-sm text-[#e4e4e7] font-body font-medium">
-                        Quote on call · Pay after event
+                      <p className="font-display text-3xl text-[#FF6B9D] leading-none mt-1">
+                        ₹{pkg.perPlate}
+                        <span className="font-body text-xs text-[#a1a1aa] tracking-normal">
+                          {" "}
+                          /plate
+                        </span>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] text-[#71717a] font-body">
+                        Party from
+                      </p>
+                      <p className="text-sm text-[#e4e4e7] font-body font-bold">
+                        ₹{(pkg.perPlate * pkg.minGuests).toLocaleString("en-IN")}
+                      </p>
+                      <p className="text-[10px] text-[#52525b] font-body">
+                        {pkg.minGuests}+ guests
                       </p>
                     </div>
                   </div>
+                  <p className="text-[10px] text-[#71717a] font-body -mt-2">
+                    All-inclusive · food, packaging & cart staff · pay after event
+                  </p>
 
                   {/* Big WhatsApp CTA — primary conversion path */}
                   <div className="mt-auto pt-2 flex flex-col gap-2">
@@ -551,8 +583,12 @@ export default function EventsPage() {
         >
           ALL EVENT PACKAGES
         </motion.h2>
-        <p className="text-center text-sm text-[#71717a] font-body mb-8">
-          Pick the tier that fits your crowd
+        <p className="text-center text-sm text-[#71717a] font-body mb-2">
+          Simple per-plate pricing — pick the tier that fits your crowd
+        </p>
+        <p className="text-center text-xs text-[#52525b] font-body mb-8 max-w-md mx-auto">
+          Every plate is all-inclusive: food, packaging and cart staff are
+          built in. No setup fees, no hidden charges.
         </p>
         <motion.div
           variants={stagger}
@@ -603,8 +639,20 @@ export default function EventsPage() {
                     <span className="text-[#71717a]"> · {pkg.occasion}</span>
                   )}
                 </p>
-                <p className="font-display text-4xl text-[#FFD600]">
-                  ₹{pkg.price}
+                <div className="flex items-end gap-2">
+                  <p className="font-display text-4xl text-[#FFD600] leading-none">
+                    ₹{pkg.perPlate}
+                  </p>
+                  <span className="text-xs text-[#a1a1aa] font-body pb-1">
+                    /plate
+                  </span>
+                </div>
+                <p className="text-xs text-[#71717a] font-body -mt-1">
+                  Packages from{" "}
+                  <span className="text-[#e4e4e7] font-semibold">
+                    ₹{pkg.price}
+                  </span>{" "}
+                  · all-inclusive
                 </p>
 
                 <ul className="space-y-1.5 pt-3 border-t border-[#27272a]">
