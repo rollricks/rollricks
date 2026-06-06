@@ -42,9 +42,18 @@ const IMG = {
   chickenTikka: "/menu/chicken-tikka.webp",
   mushroomTikka: "/menu/mushroom-tikka.webp",
 
+  // Real roll photography (RollRicks-owned, shot 2026-06)
+  vegRoll: "/menu/veg-roll.webp",
+  achariRoll: "/menu/achari-roll.webp",
+  paneerKhatiRoll: "/menu/paneer-khati-roll.webp",
+  paneerTikkaRoll: "/menu/paneer-tikka-roll.webp",
+  soyaChaapRoll: "/menu/soya-chaap-roll.webp",
+  eggRoll: "/menu/egg-roll.webp",
+  chickenRoll: "/menu/chicken-roll.webp",
+  doubleEggChickenRoll: "/menu/double-egg-chicken-roll.webp",
+  chickenBreadRoll: "/menu/chicken-bread-roll.webp",
+
   // Verified Unsplash matches for items without an in-house photo
-  chickenRoll:
-    "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=600&q=70",
   friedChicken:
     "https://images.unsplash.com/photo-1562967916-eb82221dfb92?auto=format&fit=crop&w=600&q=70",
   coldCoffee:
@@ -74,7 +83,18 @@ const vegRolls: MenuCategory = {
       type: "veg",
       badge: "Budget Hit",
       available: true,
-      image: IMG.roll,
+      image: IMG.vegRoll,
+    },
+    {
+      id: "v-roll-achari",
+      name: "Achari Roll",
+      description: "Tangy pickle-spiced veg filling wrapped in roti",
+      price: 120,
+      category: "Rolls (Veg)",
+      type: "veg",
+      badge: "New",
+      available: true,
+      image: IMG.achariRoll,
     },
     {
       id: "v-roll-paneer-khati",
@@ -84,7 +104,7 @@ const vegRolls: MenuCategory = {
       category: "Rolls (Veg)",
       type: "veg",
       available: true,
-      image: IMG.roll,
+      image: IMG.paneerKhatiRoll,
     },
     {
       id: "v-roll-paneer-tikka",
@@ -95,7 +115,7 @@ const vegRolls: MenuCategory = {
       type: "veg",
       badge: "★ Most Ordered",
       available: true,
-      image: IMG.paneerTikka,
+      image: IMG.paneerTikkaRoll,
     },
     {
       id: "v-roll-soya-chaap",
@@ -105,7 +125,7 @@ const vegRolls: MenuCategory = {
       category: "Rolls (Veg)",
       type: "veg",
       available: true,
-      image: IMG.soyaChaap,
+      image: IMG.soyaChaapRoll,
     },
     {
       id: "v-roll-cheese-bread",
@@ -286,7 +306,7 @@ const nvRolls: MenuCategory = {
       type: "nonveg",
       badge: "Budget Hit",
       available: true,
-      image: IMG.roll,
+      image: IMG.eggRoll,
     },
     {
       id: "nv-roll-chicken",
@@ -308,7 +328,7 @@ const nvRolls: MenuCategory = {
       type: "nonveg",
       badge: "Value Pack",
       available: true,
-      image: IMG.chickenRoll,
+      image: IMG.doubleEggChickenRoll,
     },
     {
       id: "nv-roll-chicken-crispy-bread",
@@ -318,7 +338,7 @@ const nvRolls: MenuCategory = {
       category: "Rolls (Non-Veg)",
       type: "nonveg",
       available: true,
-      image: IMG.cheeseBreadRoll,
+      image: IMG.chickenBreadRoll,
     },
   ],
 };
