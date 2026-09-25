@@ -27,7 +27,7 @@
 | Local dev URL | http://localhost:3001 | (port 3000 was busy) — start with `npm run dev` |
 | Backend | Supabase project `yqmfygasjqebdgbxsaoi` (Mumbai, `ap-south-1`) | https://supabase.com/dashboard/project/yqmfygasjqebdgbxsaoi |
 | Admin login | `admin@rollricks.in` | New password set 2026-06-02 (in `.supabase-db-pass.txt`) — change it & store in password manager |
-| WhatsApp | +91 8918791675 | Used for order notifications via `wa.me` deep links |
+| WhatsApp | +91 78286 51578 | Order notifications + all site WhatsApp links (`wa.me`). Set in `.env.local` → `NEXT_PUBLIC_WHATSAPP_NUMBER` |
 
 ### Pages
 
