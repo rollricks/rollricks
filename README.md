@@ -3,7 +3,7 @@
 Website for **RollRicks**, a street-food cart in Jabalpur. Customers browse the menu, pre-order for a pickup slot, pay by UPI or at the cart, and track the order. The owner runs everything from `/admin`.
 
 **Live:** [rollricks.in](https://rollricks.in) (Hostinger, static upload) · mirror at rollricks.vercel.app
-**Ops runbook:** [PLAYBOOK.md](PLAYBOOK.md)
+**Full project context (start here):** [CLAUDE.md](CLAUDE.md) · **Ops runbook:** [PLAYBOOK.md](PLAYBOOK.md)
 
 ---
 
@@ -46,7 +46,7 @@ context/UIContext      Cart drawer + item bottom sheet
 components/            Nav, Footer, MenuItem (food card), ItemSheet, CartBar, CartDrawer, Seal, VegMark, ThemeToggle, StatusPill…
 app/globals.css        Light ("menu card") + dark ("cart at night") colour tokens
 supabase/schema.sql    Base schema
-supabase/migrations/   002 = order privacy + partner_enquiries (run at deploy — see PLAYBOOK)
+supabase/migrations/   002 hardening · 003 close public order reads · 004 partner interest (all applied)
 scripts/import-brand-assets.mjs   Rebuilds public/ images from E:\Personal (brand + Zomato shoot)
 ```
 

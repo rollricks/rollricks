@@ -19,11 +19,13 @@
 > - Migration 004 (also applied): partner_enquiries.interest = own-cart / idea-check / exploring.
 > - Backup taken first: `E:\Roll\db-backups\2026-09-25-before-hardening\` (CSV of every table + policies/grants).
 >
-> **Deploy checklist for the redesign:**
+> **✅ Redesign deployed to rollricks.in and migration 003 applied on 2026-09-25** (public order reads fully closed;
+> verified: anon read of orders → 401, track_orders()/slot_counts() and new orders still work). See CLAUDE.md for full context.
+>
+> **Deploy checklist (for future releases):**
 > 1. `npm run build` and upload **the contents of** `out/` to Hostinger `public_html` (including the new `.htaccess`,
 >    which adds HSTS, Permissions-Policy and a Content-Security-Policy).
-> 2. **Right after upload**, run `supabase/migrations/003_close_public_order_reads.sql` in the Supabase SQL Editor
->    (Phase 2 — removes the interim 36-hour public read completely). Don't run it before uploading.
+> 2. (Done once, 2026-09-25) migration 003 closed public order reads — nothing to run for normal releases.
 > 3. On your phone: place one test order, find it on /track, then cancel it from /admin.
 > 4. Supabase dashboard → Authentication → Sign In / Providers → Email → turn **off** "Allow new users to sign up"
 >    (only the admin account should exist; public sign-up just invites spam accounts).
