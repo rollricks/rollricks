@@ -185,3 +185,30 @@ body::before {
   padding: 8px 8px 34px;
   box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.18);
 }
+
+/* Brand ribbon — slow marquee of what we serve. Content is duplicated
+   in markup so translateX(-50%) loops seamlessly. */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.marquee {
+  animation: marquee 38s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee { animation: none; }
+}
+
+/* Consistent warm grade on food photography so mixed shoots read as
+   one brand. Very light — never "filtered". */
+.food-grade {
+  filter: saturate(1.08) contrast(1.04);
+}
+
+/* Torn-paper edge for full-width bands (top / bottom). */
+.torn-top {
+  -webkit-mask: linear-gradient(#000, #000) bottom / 100% calc(100% - 14px) no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 14' preserveAspectRatio='none'%3E%3Cpath d='M0 14 L0 7 L6 4 L12 8 L20 3 L28 7 L36 2 L44 6 L52 3 L60 8 L68 2 L76 6 L84 3 L92 8 L100 4 L108 7 L114 3 L120 6 L120 14 Z'/%3E%3C/svg%3E") top / 100% 14px no-repeat;
+  mask: linear-gradient(#000, #000) bottom / 100% calc(100% - 14px) no-repeat,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 14' preserveAspectRatio='none'%3E%3Cpath d='M0 14 L0 7 L6 4 L12 8 L20 3 L28 7 L36 2 L44 6 L52 3 L60 8 L68 2 L76 6 L84 3 L92 8 L100 4 L108 7 L114 3 L120 6 L120 14 Z'/%3E%3C/svg%3E") top / 100% 14px no-repeat;
+}

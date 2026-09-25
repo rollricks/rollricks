@@ -26,6 +26,8 @@ import StatusPill from "@/components/StatusPill";
 import SectionHeading from "@/components/SectionHeading";
 import Reveal from "@/components/Reveal";
 import Faq from "@/components/Faq";
+import LoopVideo from "@/components/LoopVideo";
+import BrandRibbon from "@/components/BrandRibbon";
 
 const rise = {
   hidden: { opacity: 0, y: 24 },
@@ -54,9 +56,9 @@ const values = [
   { icon: Heart, title: "Made With Love", text: "Jo dil se banata hai, vo dil tak jaata hai." },
 ];
 
-const polaroids = [
+const polaroids: { src: string; label: string; rotate: number; video?: string }[] = [
   { src: "/images/story/first-cart.webp", label: "Our first cart in Jabalpur", rotate: -4 },
-  { src: "/images/story/freshly-prepared.webp", label: "Freshly prepared with love", rotate: 3 },
+  { src: "/videos/prep-poster.webp", video: "/videos/prep.mp4", label: "Freshly prepared with love", rotate: 3 },
   { src: "/images/story/rolls-memories.webp", label: "Rolls that create memories", rotate: -2 },
   { src: "/images/story/happier-people.webp", label: "Good food. Happier people.", rotate: 4 },
 ];
@@ -88,88 +90,128 @@ export default function HomePage() {
   return (
     <div className="overflow-x-clip">
       {/* ── HERO ─────────────────────────────────────────── */}
-      <section data-theme="dark" className="relative min-h-[min(calc(100svh-4rem),860px)] flex items-end sm:items-center overflow-hidden bg-[#0E0803]">
-        <picture>
-          <source media="(min-width: 768px)" srcSet="/images/cart/hero-night.webp" />
+      <section data-theme="dark" className="relative overflow-hidden bg-[#0E0803]">
+        {/* Mobile: the real cart at night, full-bleed. Its lit sign is the logo. */}
+        <div className="md:hidden absolute inset-0">
+          <LoopVideo
+            src="/videos/hero-cart.mp4"
+            poster="/videos/hero-cart-poster.webp"
+            label="The RollRicks cart lit up at night in Katanga, Jabalpur"
+            className="w-full h-full object-cover object-top"
+            eager
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0E0803] from-[18%] via-[#0E0803]/70 via-[38%] to-transparent to-[60%]" />
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0E0803]/70 to-transparent" />
+        </div>
+
+        {/* Desktop: warm food spread as a dim backdrop */}
+        <div className="hidden md:block absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/images/cart/hero-night-mobile.webp"
-            alt="The RollRicks food cart lit up at night with rolls, tikka, noodles and mojitos"
-            className="absolute inset-0 w-full h-full object-cover object-[center_15%] sm:object-center kenburns"
+            src="/images/cart/hero-night.webp"
+            alt=""
+            className="w-full h-full object-cover opacity-25 blur-[3px] scale-105 kenburns"
             fetchPriority="high"
           />
-        </picture>
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0E0803] from-25% via-[#0E0803]/85 to-[#0E0803]/10 sm:bg-gradient-to-r sm:from-[#0E0803]/95 sm:via-[#0E0803]/70 sm:to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0E0803] via-[#0E0803]/85 to-[#0E0803]/40" />
+        </div>
 
-        <div className="relative z-10 w-full max-w-6xl mx-auto px-4 pb-10 pt-24 sm:py-16">
-          <div className="max-w-xl">
-            <motion.div custom={0} variants={rise} initial="hidden" animate="visible" className="mb-5">
-              <StatusPill className="bg-black/40 backdrop-blur" />
+        <div className="relative z-10 max-w-6xl mx-auto px-4 min-h-[min(calc(100svh-4rem),880px)] md:min-h-[720px] flex items-end md:items-center md:grid md:grid-cols-[1.1fr_0.9fr] md:gap-10">
+          <div className="w-full pb-7 pt-[50svh] md:py-16 max-w-xl">
+            <motion.div custom={0} variants={rise} initial="hidden" animate="visible" className="mb-4">
+              <StatusPill className="bg-black/50 backdrop-blur" />
             </motion.div>
+
+            <motion.p
+              custom={0.5}
+              variants={rise}
+              initial="hidden"
+              animate="visible"
+              className="hidden md:block font-display font-black text-7xl lg:text-8xl leading-[0.92] text-[#F2C14E] tracking-tight drop-shadow-[0_4px_24px_rgba(242,193,78,0.25)]"
+              aria-hidden="true"
+            >
+              ROLLRICKS
+            </motion.p>
+            <motion.p
+              custom={0.8}
+              variants={rise}
+              initial="hidden"
+              animate="visible"
+              className="hidden md:block mt-2 text-[11px] uppercase tracking-[0.4em] text-[#E8D5B5]"
+            >
+              Sealed with Taste
+            </motion.p>
 
             <motion.h1
               custom={1}
               variants={rise}
               initial="hidden"
               animate="visible"
-              className="font-display font-black text-[3.4rem] leading-[0.95] sm:text-7xl lg:text-8xl text-[#F2C14E] tracking-tight drop-shadow-[0_4px_24px_rgba(242,193,78,0.25)]"
+              className="md:mt-7 font-display italic font-black text-[2rem] leading-[1.08] sm:text-4xl lg:text-[2.6rem] text-[#FFF8EE] tracking-tight"
             >
-              ROLLRICKS
-            </motion.h1>
-            <motion.p
-              custom={1.5}
-              variants={rise}
-              initial="hidden"
-              animate="visible"
-              className="mt-2 text-[11px] uppercase tracking-[0.4em] text-[#E8D5B5]"
-            >
-              Sealed with Taste
-            </motion.p>
-
-            <motion.p
-              custom={2}
-              variants={rise}
-              initial="hidden"
-              animate="visible"
-              className="mt-6 font-display italic font-bold text-2xl sm:text-3xl text-[#FFF8EE] leading-snug"
-            >
+              <span className="sr-only">RollRicks — </span>
               &ldquo;Jo Dil Se Banata Hai,
               <br />
               Vo Dil Tak Jaata Hai.&rdquo;
-            </motion.p>
+            </motion.h1>
             <motion.p
-              custom={2.5}
+              custom={1.6}
               variants={rise}
               initial="hidden"
               animate="visible"
-              className="mt-3 font-hand text-2xl text-[#F2C14E]"
+              className="mt-2 font-hand text-[1.7rem] leading-none text-[#F2C14E]"
             >
               5-star food. Street-side.
             </motion.p>
 
-            <motion.div custom={3} variants={rise} initial="hidden" animate="visible" className="mt-8 flex flex-wrap gap-3">
+            <motion.div custom={2.2} variants={rise} initial="hidden" animate="visible" className="mt-6 grid grid-cols-2 sm:flex gap-3">
               <Link
                 href="/menu/"
-                className="inline-flex items-center gap-2 h-12 px-7 rounded-full bg-[#F2C14E] text-[#1A0A00] font-bold text-sm uppercase tracking-wider glow hover:brightness-110 active:scale-95 transition-all"
+                className="inline-flex items-center justify-center gap-1.5 h-12 px-4 sm:px-6 whitespace-nowrap rounded-full bg-[#F2C14E] text-[#1A0A00] font-bold text-[13px] sm:text-sm uppercase tracking-wide sm:tracking-wider glow hover:brightness-110 active:scale-95 transition-all"
               >
                 Order now <ArrowRight className="w-4 h-4" />
               </Link>
               <a
                 href="#serve"
-                className="inline-flex items-center h-12 px-7 rounded-full border border-[#F2C14E]/70 text-[#F2C14E] font-bold text-sm uppercase tracking-wider hover:bg-[#F2C14E]/10 active:scale-95 transition-all"
+                className="inline-flex items-center justify-center h-12 px-4 sm:px-6 whitespace-nowrap rounded-full border border-[#F2C14E]/70 text-[#F2C14E] font-bold text-[13px] sm:text-sm uppercase tracking-wide sm:tracking-wider bg-black/30 backdrop-blur hover:bg-[#F2C14E]/10 active:scale-95 transition-all"
               >
                 Explore menu
               </a>
             </motion.div>
-            <motion.p custom={3.5} variants={rise} initial="hidden" animate="visible" className="mt-5 text-xs text-[#E8D5B5]/80">
-              {HOURS.days} · {HOURS.label} · {HOURS.closedNote} · {addressLine(loc)}
+            <motion.p custom={2.8} variants={rise} initial="hidden" animate="visible" className="mt-4 text-xs text-[#E8D5B5]/85 leading-relaxed">
+              📍 {addressLine(loc)} · {HOURS.days}, {HOURS.label}
+              <span className="text-[#E8D5B5]/60"> · {HOURS.closedNote}</span>
             </motion.p>
           </div>
+
+          {/* Desktop: the cart video as a tall glowing story card */}
+          <motion.div
+            initial={{ opacity: 0, y: 30, rotate: 0 }}
+            animate={{ opacity: 1, y: 0, rotate: 2 }}
+            transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
+            className="hidden md:block relative justify-self-end w-[320px] lg:w-[360px]"
+          >
+            <div className="relative aspect-[9/16] rounded-[2rem] overflow-hidden border border-[#F2C14E]/30 shadow-[0_30px_80px_-20px_rgba(242,193,78,0.35)]">
+              <LoopVideo
+                src="/videos/hero-cart.mp4"
+                poster="/videos/hero-cart-poster.webp"
+                label="The RollRicks cart lit up at night in Katanga, Jabalpur"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <p className="absolute -left-40 bottom-10 font-hand text-2xl text-[#F2C14E] -rotate-6 leading-tight text-right">
+              Katanga,
+              <br />
+              every evening ♥
+            </p>
+          </motion.div>
         </div>
       </section>
 
+      <BrandRibbon />
+
       {/* ── TODAY'S HITS ─────────────────────────────────── */}
-      <section className="py-16 max-w-6xl mx-auto">
+      <section className="py-10 sm:py-16 max-w-6xl mx-auto">
         <Reveal className="px-4 flex items-end justify-between gap-4 mb-6">
           <SectionHeading eyebrow="Straight from the tawa" title="Today's Hits" />
           <Link href="/menu/" className="hidden sm:inline-flex items-center gap-1 text-sm font-bold text-gold whitespace-nowrap">
@@ -191,7 +233,7 @@ export default function HomePage() {
       </section>
 
       {/* ── WHAT ARE YOU FEELING? ────────────────────────── */}
-      <section id="serve" className="py-12 px-4 max-w-6xl mx-auto scroll-mt-20">
+      <section id="serve" className="py-9 sm:py-12 px-4 max-w-6xl mx-auto scroll-mt-20">
         <Reveal>
           <SectionHeading eyebrow="What we serve" title="What are you feeling?" />
         </Reveal>
@@ -239,14 +281,16 @@ export default function HomePage() {
       </section>
 
       {/* ── HOW IT WORKS ─────────────────────────────────── */}
-      <section className="py-12 px-4 max-w-6xl mx-auto">
-        <Reveal className="rounded-3xl border border-line bg-card p-6 sm:p-10">
+      <section className="py-9 sm:py-12 px-4 max-w-6xl mx-auto">
+        <Reveal className="rounded-3xl border border-line bg-card p-5 sm:p-10">
           <p className="font-hand text-2xl text-gold">No login. No queue.</p>
           <h2 className="font-display font-black text-3xl sm:text-4xl text-ink">How it works</h2>
-          <ol className="mt-6 grid sm:grid-cols-3 gap-5">
+          <div className="mt-5 grid grid-cols-[1fr_38%] sm:grid-cols-[1fr_220px] lg:grid-cols-[1fr_260px] gap-5 sm:gap-10 items-center">
+          <div>
+          <ol className="grid gap-5">
             {steps.map((s) => (
-              <li key={s.n} className="flex sm:flex-col gap-4 sm:gap-2">
-                <span className="font-display font-black text-5xl text-accent/80 leading-none">{s.n}</span>
+              <li key={s.n} className="flex gap-3 sm:gap-5 items-start">
+                <span className="font-display font-black text-4xl sm:text-5xl text-accent/80 leading-none w-10 sm:w-14 flex-shrink-0">{s.n}</span>
                 <span>
                   <span className="block font-display font-bold text-xl text-ink">{s.title}</span>
                   <span className="block text-sm text-soft mt-1">{s.text}</span>
@@ -254,11 +298,27 @@ export default function HomePage() {
               </li>
             ))}
           </ol>
+          </div>
+          <div className="relative">
+            <div className="aspect-[9/16] rounded-2xl overflow-hidden border border-line bg-raised shadow-xl rotate-2">
+              <LoopVideo
+                src="/videos/handover.mp4"
+                poster="/videos/handover-poster.webp"
+                label="A RollRicks order being packed and handed over at the cart"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <p className="absolute -bottom-3 -left-3 px-2.5 py-1 rounded-full bg-accent text-on-accent text-[10px] font-bold uppercase tracking-wider shadow">
+              Real orders, real cart
+            </p>
+          </div>
+          </div>
         </Reveal>
       </section>
 
       {/* ── OUR STORY: FROM CODE TO KATHI ───────────────── */}
-      <section id="story" className="py-16 px-4 max-w-6xl mx-auto scroll-mt-20">
+      <div className="relative mt-6 bg-raised/60 torn-top">
+      <section id="story" className="pt-20 pb-16 px-4 max-w-6xl mx-auto scroll-mt-20">
         <div className="grid lg:grid-cols-[1fr_1.1fr] gap-10 lg:gap-14 items-center">
           <Reveal>
             <p className="font-hand text-3xl text-gold -rotate-2 inline-block">Our Story</p>
@@ -306,8 +366,12 @@ export default function HomePage() {
                   className="polaroid shrink-0 snap-center w-[70%] min-[420px]:w-[55%] lg:w-auto"
                 >
                   <div className="aspect-[4/3] overflow-hidden bg-[#1A0F07]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.src} alt={p.label} loading="lazy" className="w-full h-full object-cover" />
+                    {p.video ? (
+                      <LoopVideo src={p.video} poster={p.src} label={p.label} className="w-full h-full object-cover object-[center_40%]" />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.src} alt={p.label} loading="lazy" className="w-full h-full object-cover" />
+                    )}
                   </div>
                   <figcaption className="pt-2 text-center font-hand text-xl text-[#3D1A05] leading-none">
                     {p.label} <span className="text-[#C0392B]">♥</span>
@@ -370,8 +434,10 @@ export default function HomePage() {
         </ol>
       </section>
 
+      </div>
+
       {/* ── EVENTS ───────────────────────────────────────── */}
-      <section className="py-12 px-4 max-w-6xl mx-auto">
+      <section className="py-9 sm:py-12 px-4 max-w-6xl mx-auto">
         <Reveal data-theme="dark" className="relative overflow-hidden rounded-3xl bg-[#0E0803] min-h-[420px] flex items-end">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/food/tikka-fire.webp" alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover opacity-80" />
@@ -409,7 +475,7 @@ export default function HomePage() {
       </section>
 
       {/* ── PARTNER TEASER ───────────────────────────────── */}
-      <section className="py-12 px-4 max-w-6xl mx-auto">
+      <section className="py-9 sm:py-12 px-4 max-w-6xl mx-auto">
         <Reveal className="rounded-3xl border border-line bg-card p-6 sm:p-10 grid md:grid-cols-[1.2fr_1fr] gap-8 items-center">
           <div>
             <p className="font-hand text-2xl text-gold">Partner with RollRicks</p>
@@ -448,7 +514,7 @@ export default function HomePage() {
       </section>
 
       {/* ── REVIEWS (genuine only) + CAMERA ROLL ─────────── */}
-      <section className="py-16 max-w-6xl mx-auto">
+      <section className="py-10 sm:py-16 max-w-6xl mx-auto">
         {REVIEWS.length > 0 && (
           <div className="px-4 mb-12">
             <Reveal>
@@ -505,7 +571,7 @@ export default function HomePage() {
       </section>
 
       {/* ── FIND US ──────────────────────────────────────── */}
-      <section id="find-us" className="py-12 px-4 max-w-6xl mx-auto scroll-mt-20">
+      <section id="find-us" className="py-9 sm:py-12 px-4 max-w-6xl mx-auto scroll-mt-20">
         <Reveal>
           <SectionHeading eyebrow="Jabalpur eats different" title="Find us" sub="Follow the warm lights and the tandoor smoke." />
         </Reveal>
@@ -581,7 +647,7 @@ export default function HomePage() {
       </section>
 
       {/* ── FAQ ──────────────────────────────────────────── */}
-      <section id="faq" className="py-12 px-4 max-w-3xl mx-auto scroll-mt-20">
+      <section id="faq" className="py-9 sm:py-12 px-4 max-w-3xl mx-auto scroll-mt-20">
         <Reveal>
           <SectionHeading eyebrow="Pooch lo" title="FAQ" align="center" />
         </Reveal>

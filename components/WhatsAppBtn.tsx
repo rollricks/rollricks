@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/context/CartContext";
@@ -10,6 +11,16 @@ export default function WhatsAppBtn() {
   const { totalItems } = useCart();
   // One floating button at a time: once the cart bar is showing it
   // owns the bottom of the screen, and WhatsApp stays in the nav drawer.
+  // Appears once the visitor scrolls past the first screen, so it never
+  // covers the hero buttons.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > window.innerHeight * 0.6);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  if (!scrolled) return null;
   if (totalItems > 0 && !pathname.startsWith("/checkout")) return null;
 
   return (
@@ -23,7 +34,7 @@ export default function WhatsAppBtn() {
         type: "spring",
         stiffness: 260,
         damping: 20,
-        delay: 1,
+        delay: 0,
       }}
       whileHover={{ scale: 1.12 }}
       whileTap={{ scale: 0.95 }}

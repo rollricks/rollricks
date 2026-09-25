@@ -6,6 +6,7 @@ import { supabase, rowToOrder, type OrderRow } from "@/lib/supabase";
 import { generateStatusWhatsApp } from "@/lib/whatsapp";
 import { allMenuItems } from "@/lib/menu-data";
 import OrderCard from "@/components/OrderCard";
+import AdminData from "@/components/AdminData";
 
 interface OrderItem {
   name: string;
@@ -28,7 +29,7 @@ interface Order {
 
 const STATUS_TABS = ["All", "New", "Confirmed", "Preparing", "Ready", "Done"];
 
-type AdminSection = "orders" | "analytics" | "menu";
+type AdminSection = "orders" | "analytics" | "menu" | "data";
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -528,7 +529,7 @@ export default function AdminPage() {
       {/* Section Tabs */}
       <div className="sticky top-[52px] z-40 bg-base/95 backdrop-blur border-b border-line">
         <div className="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto py-2">
-          {(["orders", "analytics", "menu"] as AdminSection[]).map((section) => (
+          {(["orders", "analytics", "menu", "data"] as AdminSection[]).map((section) => (
             <button
               key={section}
               onClick={() => setActiveSection(section)}
@@ -538,7 +539,7 @@ export default function AdminPage() {
                   : "text-muted hover:text-soft"
               }`}
             >
-              {section === "orders" ? "Live Orders" : section === "analytics" ? "Analytics" : "Menu Control"}
+              {section === "orders" ? "Live Orders" : section === "analytics" ? "Analytics" : section === "menu" ? "Menu Control" : "Enquiries & Data"}
             </button>
           ))}
         </div>
@@ -873,6 +874,8 @@ export default function AdminPage() {
           )}
 
           {/* MENU CONTROL SECTION */}
+          {activeSection === "data" && <AdminData />}
+
           {activeSection === "menu" && (
             <section className="space-y-4 pb-12">
               <div className="rounded-xl bg-card border border-line divide-y divide-line">

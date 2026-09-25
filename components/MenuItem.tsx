@@ -39,7 +39,7 @@ export default function MenuItem({ item, size = "md" }: MenuItemProps) {
       whileTap={unavailable ? undefined : { scale: 0.985 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
       onClick={() => openItem(item)}
-      className={`group relative flex flex-col rounded-2xl bg-card border border-line overflow-hidden cursor-pointer hover:border-line-strong transition-colors ${
+      className={`group relative flex flex-col rounded-[1.25rem] bg-card border border-line overflow-hidden cursor-pointer hover:border-line-strong hover:-translate-y-0.5 hover:shadow-[0_14px_30px_-18px_rgba(0,0,0,0.6)] transition-all duration-300 ${
         unavailable ? "opacity-60" : ""
       }`}
       aria-label={`${item.name}, ₹${item.price}`}
@@ -47,6 +47,7 @@ export default function MenuItem({ item, size = "md" }: MenuItemProps) {
       {/* Photo */}
       <div className={`relative w-full overflow-hidden bg-raised ${size === "lg" ? "aspect-[4/3.4]" : "aspect-[4/3]"}`}>
         <FoodImage item={item} className="group-hover:scale-[1.04] transition-transform duration-500" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/25 to-transparent" />
 
         {item.badge && !unavailable && (
           <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-accent text-on-accent shadow">

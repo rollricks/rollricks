@@ -20,7 +20,7 @@ export default function FoodImage({
         alt={item.name}
         loading={eager ? "eager" : "lazy"}
         decoding="async"
-        className={`w-full h-full object-cover ${className}`}
+        className={`w-full h-full object-cover food-grade ${className}`}
       />
     );
   }
