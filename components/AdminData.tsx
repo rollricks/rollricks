@@ -123,7 +123,14 @@ export default function AdminData() {
         {partners.map((r) => (
           <div key={String(r.id)} className="px-4 py-3 text-sm">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold text-ink">{String(r.name ?? "")}</span>
+              <span className="font-semibold text-ink">
+                {String(r.name ?? "")}
+                {!!r.interest && (
+                  <span className="ml-2 px-2 py-0.5 rounded-full bg-accent/20 text-gold text-[10px] font-bold uppercase">
+                    {r.interest === "own-cart" ? "Own cart" : r.interest === "idea-check" ? "Idea check" : "Exploring"}
+                  </span>
+                )}
+              </span>
               <span className="text-xs text-muted">{fmt(r.created_at)}</span>
             </div>
             <p className="text-soft">

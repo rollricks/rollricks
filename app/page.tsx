@@ -484,7 +484,7 @@ export default function HomePage() {
               <br />A bigger journey.
             </h2>
             <p className="mt-4 text-soft leading-relaxed">
-              We&apos;re building toward a network of modern RollRicks food carts. <strong className="text-ink">You bring the drive. We bring the system:</strong> brand, menu, recipes, training, technology and day-to-day operations.
+              Want your own food business? Run your own RollRicks cart. <strong className="text-ink">You bring the drive, we bring the system:</strong> cart setup, brand, menu, recipes, training, ordering tech and support. Got your own idea instead? We&apos;ll tell you honestly if it can work.
             </p>
             <Link
               href="/partner/"

@@ -88,9 +88,10 @@ export const FAQ: FaqEntry[] = [
     q: "Can I partner with RollRicks?",
     a: (
       <>
-        We&apos;re building towards a network of RollRicks carts. If you&apos;d like to be part of it, send us an{" "}
-        <Link href="/partner/" className="text-gold underline">enquiry</Link>. Partnership structure, costs and terms are
-        discussed one-to-one.
+        Yes, two ways. You can run your own RollRicks cart (you invest in and run the cart; we handle setup, branding, menu,
+        training and ordering tech), or bring us your own food-business idea for an honest opinion. Start with an{" "}
+        <Link href="/partner/" className="text-gold underline">enquiry</Link>. Costs and terms are discussed one-to-one,
+        and there&apos;s no guaranteed income.
       </>
     ),
   },

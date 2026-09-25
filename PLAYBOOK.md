@@ -16,6 +16,7 @@
 > - Added `track_orders()` / `slot_counts()` read functions and the `partner_enquiries` table.
 > - Anti-abuse triggers: phone/name/items/total/slot/payment validation; max 5 orders per phone per hour and
 >   30 site-wide per 10 min (same for enquiries). Blocks fake-order floods that could fill every pickup slot.
+> - Migration 004 (also applied): partner_enquiries.interest = own-cart / idea-check / exploring.
 > - Backup taken first: `E:\Roll\db-backups\2026-09-25-before-hardening\` (CSV of every table + policies/grants).
 >
 > **Deploy checklist for the redesign:**

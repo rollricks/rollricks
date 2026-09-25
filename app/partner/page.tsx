@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase";
 import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import Reveal from "@/components/Reveal";
 import SectionHeading from "@/components/SectionHeading";
+import LoopVideo from "@/components/LoopVideo";
 
 const brings = [
   { icon: BadgeCheck, title: "Brand", text: "The RollRicks name, seal, cart look and packaging." },
@@ -47,6 +48,13 @@ const process = [
   { title: "Launch together", text: "Cart setup, training and opening night." },
 ];
 
+const INTERESTS = [
+  { key: "own-cart", label: "Own a RollRicks cart" },
+  { key: "idea-check", label: "Check my food business idea" },
+  { key: "exploring", label: "Just exploring" },
+] as const;
+type Interest = (typeof INTERESTS)[number]["key"];
+
 const BUDGETS = ["Under ₹2 lakh", "₹2–5 lakh", "₹5–10 lakh", "₹10 lakh+", "Prefer to discuss"];
 
 const DISCLAIMER =
@@ -63,6 +71,12 @@ const nodes = [
 
 export default function PartnerPage() {
   const [form, setForm] = useState({ name: "", phone: "", city: "", budget: "", why: "", location: "", message: "" });
+  const [interest, setInterest] = useState<Interest>("own-cart");
+
+  const choose = (k: Interest) => {
+    setInterest(k);
+    document.getElementById("enquire")?.scrollIntoView({ behavior: "smooth" });
+  };
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -84,6 +98,7 @@ export default function PartnerPage() {
         name: form.name.trim().slice(0, 80),
         phone,
         city: form.city.trim().slice(0, 80),
+        interest,
         budget: form.budget || null,
         why: form.why.trim().slice(0, 1000) || null,
         preferred_location: form.location.trim().slice(0, 200) || null,
@@ -95,7 +110,7 @@ export default function PartnerPage() {
       console.warn("partner_enquiries save failed, continuing to WhatsApp:", err);
     }
 
-    const text = `Hi RollRicks! I'm interested in partnering with you 🤝
+    const text = `Hi RollRicks! 🤝 ${INTERESTS.find((i) => i.key === interest)?.label}
 Name: ${form.name.trim()}
 Phone: ${phone}
 City: ${form.city.trim()}
@@ -115,8 +130,13 @@ Message: ${form.message.trim() || "—"}`;
     <div className="overflow-x-clip pb-10">
       {/* Hero */}
       <section data-theme="dark" className="relative bg-[#0E0803] overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/story/first-cart.webp" alt="The RollRicks cart" className="absolute inset-0 w-full h-full object-cover opacity-60" />
+        <LoopVideo
+          src="/videos/hero-cart.mp4"
+          poster="/videos/hero-cart-poster.webp"
+          label="The RollRicks cart at night"
+          className="absolute inset-0 w-full h-full object-cover object-top opacity-50"
+          eager
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0E0803] via-[#0E0803]/70 to-[#0E0803]/30" />
         <div className="relative max-w-6xl mx-auto px-4 pt-24 pb-14 sm:pt-32 sm:pb-20">
           <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="font-hand text-3xl text-[#F2C14E]">
@@ -128,11 +148,9 @@ Message: ${form.message.trim() || "—"}`;
             transition={{ delay: 0.1 }}
             className="mt-1 font-display font-black text-5xl sm:text-7xl text-[#FFF8EE] leading-[0.95] tracking-tight"
           >
-            One cart.
+            Your own food cart.
             <br />
-            One brand.
-            <br />
-            <span className="text-[#F2C14E]">A bigger journey.</span>
+            <span className="text-[#F2C14E]">Our proven system.</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -140,17 +158,85 @@ Message: ${form.message.trim() || "—"}`;
             transition={{ delay: 0.2 }}
             className="mt-6 max-w-lg text-lg text-[#E8D5B5] leading-relaxed"
           >
-            You don&apos;t have to build a food business from zero. RollRicks is building toward a network of modern food carts, and we&apos;re looking for people who want to build one with us.
+            Want to run your own food business but don&apos;t know where to start? Invest in your own RollRicks cart and run it. We set it up and stand behind you: cart, branding, menu, training, suppliers, ordering tech and marketing. Or bring us your own idea and we&apos;ll tell you honestly if it can work.
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-8 flex flex-wrap gap-3">
             <a href="#enquire" className="inline-flex items-center gap-2 h-12 px-6 rounded-full bg-[#F2C14E] text-[#1A0A00] font-bold text-sm uppercase tracking-wider glow">
               Interested? Talk to us <ArrowRight className="w-4 h-4" />
             </a>
-            <a href="#how" className="inline-flex items-center h-12 px-6 rounded-full border border-[#F2C14E]/60 text-[#F2C14E] font-bold text-sm uppercase tracking-wider">
-              How it works
+            <a href="#ways" className="inline-flex items-center h-12 px-6 rounded-full border border-[#F2C14E]/60 text-[#F2C14E] font-bold text-sm uppercase tracking-wider">
+              See the options
             </a>
           </motion.div>
         </div>
+      </section>
+
+      {/* Two ways to work with us */}
+      <section id="ways" className="max-w-6xl mx-auto px-4 pt-14 pb-4 scroll-mt-20">
+        <Reveal>
+          <SectionHeading eyebrow="Two ways to work with us" title="Start your own food business, the smart way" />
+        </Reveal>
+        <div className="mt-8 grid md:grid-cols-2 gap-4">
+          {[
+            {
+              key: "own-cart" as const,
+              tag: "Run your own cart",
+              title: "Own a RollRicks cart",
+              points: [
+                "You invest in your own cart and run it, yourself or with your team",
+                "We set it up: cart build & branding, menu, recipes and training",
+                "Supplier list, online ordering, UPI and WhatsApp orders, ready on day one",
+                "Launch marketing and ongoing support from people who run a cart every night",
+              ],
+              cta: "I want my own cart",
+              img: "/videos/handover-poster.webp",
+            },
+            {
+              key: "idea-check" as const,
+              tag: "Honest advice",
+              title: "Food business idea check",
+              points: [
+                "Already have your own food or cart idea?",
+                "Tell us the location, menu, prices and budget",
+                "We'll tell you straight if it can work, and what to change before you spend",
+                "Real street-food experience, not theory",
+              ],
+              cta: "Check my idea",
+              img: "/videos/prep-poster.webp",
+            },
+          ].map((w, i) => (
+            <Reveal key={w.key} delay={i * 0.08} className="relative overflow-hidden rounded-3xl border border-line bg-card flex flex-col">
+              <div data-theme="dark" className="relative h-40 bg-[#0E0803]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={w.img} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover object-center opacity-70" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0E0803] to-transparent" />
+                <span className="absolute left-5 bottom-4 px-2.5 py-1 rounded-full bg-[#F2C14E] text-[#1A0A00] text-[10px] font-bold uppercase tracking-wider">
+                  {w.tag}
+                </span>
+              </div>
+              <div className="p-6 flex flex-col flex-1">
+                <h3 className="font-display font-black text-2xl sm:text-3xl text-ink">{w.title}</h3>
+                <ul className="mt-4 space-y-2.5 flex-1">
+                  {w.points.map((p) => (
+                    <li key={p} className="flex gap-2.5 text-sm text-soft leading-relaxed">
+                      <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0 text-gold" /> {p}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() => choose(w.key)}
+                  className="mt-6 inline-flex items-center justify-center gap-2 h-12 rounded-xl bg-accent text-on-accent font-bold text-sm uppercase tracking-wide glow"
+                >
+                  {w.cta} <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+        <p className="mt-4 text-xs text-muted leading-relaxed max-w-3xl">
+          No guaranteed income. Every food business depends on location, effort and costs, and we&apos;ll be honest with you
+          about all of it before you commit a rupee.
+        </p>
       </section>
 
       {/* You bring / we bring */}
@@ -300,6 +386,28 @@ Message: ${form.message.trim() || "—"}`;
               <h2 className="font-display font-black text-3xl sm:text-4xl text-ink">Talk to us</h2>
               <p className="mt-2 text-sm text-soft">Takes a minute. We&apos;ll get back to you personally.</p>
               <form onSubmit={submit} className="mt-6 grid gap-3" noValidate>
+                <div role="radiogroup" aria-label="I'm interested in" className="grid gap-2">
+                  <p className="text-sm font-semibold text-ink">I&apos;m interested in</p>
+                  <div className="grid sm:grid-cols-3 gap-2">
+                    {INTERESTS.map((it) => {
+                      const on = interest === it.key;
+                      return (
+                        <button
+                          key={it.key}
+                          type="button"
+                          role="radio"
+                          aria-checked={on}
+                          onClick={() => setInterest(it.key)}
+                          className={`min-h-11 px-3 py-2 rounded-xl border text-sm font-semibold text-left sm:text-center transition-colors ${
+                            on ? "border-gold bg-accent/15 text-ink" : "border-line bg-raised/50 text-soft"
+                          }`}
+                        >
+                          {it.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className="grid sm:grid-cols-2 gap-3">
                   <input className={input} placeholder="Your name *" value={form.name} onChange={set("name")} autoComplete="name" maxLength={80} />
                   <input
@@ -326,7 +434,7 @@ Message: ${form.message.trim() || "—"}`;
                 <input className={input} placeholder="Preferred location (area / market / campus)" value={form.location} onChange={set("location")} maxLength={200} />
                 <textarea
                   className={`${input} h-24 py-3 resize-none`}
-                  placeholder="Why are you interested?"
+                  placeholder={interest === "idea-check" ? "Tell us your idea: what food, where, and your rough budget" : "Why are you interested?"}
                   value={form.why}
                   onChange={set("why")}
                   maxLength={1000}
