@@ -47,7 +47,9 @@ export type CartLocation = {
 
 // Only real, operating carts. Add an entry here and Find Us, the
 // footer, FAQ and the Restaurant schema all pick it up.
-const KATANGA_QUERY = "Katanga, Jabalpur, Madhya Pradesh";
+// "RollRicks" on Google Maps (links to rollricks.in). Found via
+// maps?q=RollRicks+Jabalpur → place 0x3981b34be3d370b1:0x76b16fe043694c5a.
+const GOOGLE_MAPS_CID = "8552740176347614298";
 
 export const LOCATIONS: CartLocation[] = [
   {
@@ -58,8 +60,11 @@ export const LOCATIONS: CartLocation[] = [
     region: "Madhya Pradesh",
     country: "IN",
     note: "Our e-rickshaw cart parks in Katanga every evening. WhatsApp us for today's exact spot.",
-    mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(KATANGA_QUERY)}`,
-    mapsEmbed: `https://www.google.com/maps?q=${encodeURIComponent(KATANGA_QUERY)}&output=embed`,
+    // The RollRicks Google Maps listing itself (Business Profile CID), so
+    // "Directions" opens the RollRicks place — with its photos, reviews
+    // and route — and follows the listing if its pin is ever moved.
+    mapsUrl: `https://maps.google.com/?cid=${GOOGLE_MAPS_CID}`,
+    mapsEmbed: `https://www.google.com/maps?cid=${GOOGLE_MAPS_CID}&output=embed`,
   },
 ];
 
