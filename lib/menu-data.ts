@@ -112,9 +112,9 @@ const vegRolls: MenuCategory = {
     },
     {
       id: "v-roll-achari",
-      name: "Achari Roll",
-      description: "Tangy pickle-spiced veg filling wrapped in roti",
-      price: 120,
+      name: "Paneer Achari Roll",
+      description: "Paneer in tangy achari (pickle) masala, wrapped in roti",
+      price: 140,
       category: "Rolls (Veg)",
       section: "Rolls",
       type: "veg",

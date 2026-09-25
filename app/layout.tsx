@@ -3,7 +3,7 @@ import { Playfair_Display, DM_Sans, DM_Mono, Caveat } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/context/CartContext";
 import LayoutShell from "@/components/LayoutShell";
-import { BRAND, LOCATIONS, SITE_URL } from "@/lib/site";
+import { BRAND, HOURS, LOCATIONS, SITE_URL } from "@/lib/site";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -102,7 +102,7 @@ const jsonLd = {
   }))[0],
   openingHoursSpecification: {
     "@type": "OpeningHoursSpecification",
-    dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    dayOfWeek: HOURS.openDaysSchema,
     opens: "18:00",
     closes: "23:30",
   },

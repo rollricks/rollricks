@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { generateOrderWhatsApp, generatePaymentWhatsApp, WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { buildUpiLink, SLOT_CAPACITY } from "@/lib/upi";
 import { fetchSlotCounts } from "@/lib/slots";
+import { getOpenStatus, isClosedDay, istNow } from "@/lib/site";
 
 type Step = 1 | 2 | 3;
 
@@ -36,17 +37,17 @@ const MIN_LEAD_MINUTES = 30;
 
 function generatePickupSlots(now: Date = new Date()): string[] {
   const slots: string[] = [];
-  const cutoff = new Date(now.getTime() + MIN_LEAD_MINUTES * 60 * 1000);
+  // Always in IST (the cart's clock), whatever timezone the phone is in.
+  const { day, minutes } = istNow(now);
+  if (isClosedDay(day)) return []; // closed Mondays
+  const cutoff = minutes + MIN_LEAD_MINUTES;
   // Fixed slots from 6:00 PM to 11:30 PM in 15-min intervals
   for (let hour = 18; hour <= 23; hour++) {
     for (const min of [0, 15, 30, 45]) {
       if (hour === 23 && min > 30) break;
-      // Build a Date for this slot today and skip if it's already past
-      // the lead-time cutoff. Customers can't book a slot the kitchen
-      // can't realistically prep for.
-      const slotDate = new Date(now);
-      slotDate.setHours(hour, min, 0, 0);
-      if (slotDate < cutoff) continue;
+      // Skip slots already past the lead-time cutoff. Customers can't
+      // book a slot the kitchen can't realistically prep for.
+      if (hour * 60 + min < cutoff) continue;
       const ampm = hour >= 12 ? "PM" : "AM";
       const h = hour % 12 || 12;
       const m = min.toString().padStart(2, "0");
@@ -623,7 +624,7 @@ export default function CheckoutPage() {
                         setErrors((prev) => ({ ...prev, name: "" }));
                     }}
                     placeholder="Your name"
-                    className="w-full px-4 py-3 rounded-xl bg-raised border border-line text-white placeholder-muted focus:border-gold focus:outline-none transition-colors font-body"
+                    className="w-full px-4 py-3 rounded-xl bg-raised border border-line text-ink placeholder-muted focus:border-gold focus:outline-none transition-colors font-body"
                   />
                   {errors.name && (
                     <p className="text-nonveg text-xs mt-1">{errors.name}</p>
@@ -645,7 +646,7 @@ export default function CheckoutPage() {
                         setErrors((prev) => ({ ...prev, phone: "" }));
                     }}
                     placeholder="10-digit mobile number"
-                    className="w-full px-4 py-3 rounded-xl bg-raised border border-line text-white placeholder-muted focus:border-gold focus:outline-none transition-colors font-mono"
+                    className="w-full px-4 py-3 rounded-xl bg-raised border border-line text-ink placeholder-muted focus:border-gold focus:outline-none transition-colors font-mono"
                   />
                   {errors.phone && (
                     <p className="text-nonveg text-xs mt-1">
@@ -659,6 +660,27 @@ export default function CheckoutPage() {
                   <label className="block text-sm text-soft mb-1.5">
                     Pickup Time <span className="text-nonveg">*</span>
                   </label>
+                  {pickupSlots.length === 0 ? (
+                    <div className="px-4 py-3 rounded-xl border border-line bg-raised text-sm text-soft">
+                      <p className="font-semibold text-ink">
+                        {isClosedDay(istNow(now).day)
+                          ? "We're closed on Mondays"
+                          : "No more pickup slots today"}
+                      </p>
+                      <p className="mt-0.5">
+                        {getOpenStatus(now).detail} — come back then to pre-order, or{" "}
+                        <a
+                          href={`https://wa.me/${WHATSAPP_NUMBER}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gold underline"
+                        >
+                          message us on WhatsApp
+                        </a>
+                        .
+                      </p>
+                    </div>
+                  ) : (
                   <select
                     value={pickupTime}
                     onChange={(e) => {
@@ -666,7 +688,7 @@ export default function CheckoutPage() {
                       if (errors.pickupTime)
                         setErrors((prev) => ({ ...prev, pickupTime: "" }));
                     }}
-                    className="w-full px-4 py-3 rounded-xl bg-raised border border-line text-white focus:border-gold focus:outline-none transition-colors font-body appearance-none"
+                    className="w-full px-4 py-3 rounded-xl bg-raised border border-line text-ink focus:border-gold focus:outline-none transition-colors font-body appearance-none"
                   >
                     <option value="" disabled>
                       Select a time slot
@@ -686,6 +708,7 @@ export default function CheckoutPage() {
                       );
                     })}
                   </select>
+                  )}
                   {errors.pickupTime && (
                     <p className="text-nonveg text-xs mt-1">
                       {errors.pickupTime}

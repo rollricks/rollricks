@@ -30,7 +30,11 @@ export default function Footer() {
             </a>
           ))}
           <p className="flex gap-2 text-soft">
-            <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" /> {HOURS.days}, {HOURS.label}
+            <Clock className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>
+              {HOURS.days}, {HOURS.label}
+              <span className="block text-muted">{HOURS.closedNote}</span>
+            </span>
           </p>
           <div className="flex gap-2 pt-1">
             <a

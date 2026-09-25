@@ -162,7 +162,7 @@ export default function HomePage() {
               </a>
             </motion.div>
             <motion.p custom={3.5} variants={rise} initial="hidden" animate="visible" className="mt-5 text-xs text-[#E8D5B5]/80">
-              {HOURS.days} · {HOURS.label} · {addressLine(loc)}
+              {HOURS.days} · {HOURS.label} · {HOURS.closedNote} · {addressLine(loc)}
             </motion.p>
           </div>
         </div>
@@ -533,7 +533,11 @@ export default function HomePage() {
                 </span>
               </p>
               <p className="flex gap-2 text-soft">
-                <Clock className="w-5 h-5 text-gold flex-shrink-0" /> {HOURS.days}, {HOURS.label}
+                <Clock className="w-5 h-5 text-gold flex-shrink-0" />
+                <span>
+                  {HOURS.days}, {HOURS.label}
+                  <span className="block text-xs text-muted mt-1">{HOURS.closedNote}</span>
+                </span>
               </p>
               <div className="mt-auto grid grid-cols-2 gap-2">
                 <a

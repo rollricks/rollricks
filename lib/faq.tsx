@@ -26,7 +26,7 @@ export const FAQ: FaqEntry[] = [
   },
   {
     q: "What are the timings?",
-    a: `${HOURS.days}, ${HOURS.label} (IST). The badge at the top of the site shows whether we're open right now.`,
+    a: `${HOURS.days}, ${HOURS.label} (IST). We're closed on Mondays. The badge at the top of the site shows whether we're open right now.`,
   },
   {
     q: "Can I pre-order?",
