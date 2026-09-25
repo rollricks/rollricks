@@ -8,14 +8,25 @@
 > change it in Supabase Auth and store in your password manager. Old Tokyo project pending decommission.
 
 > **2026-09-25 redesign (branch `redesign/brand-v2`):** new brand UI (light/dark), menu v2, /partner page.
-> **Deploy checklist for this release:**
-> 1. `npm run build` and upload `out/` to Hostinger (same as always).
-> 2. **Right after upload**, run `supabase/migrations/002_privacy_and_partner.sql` in the Supabase SQL Editor.
->    It removes the public read on `orders` (customer names/phones were readable with the anon key),
->    adds `track_orders()` / `slot_counts()`, and creates `partner_enquiries`.
->    Don't run it *before* uploading — the old site still reads `orders` directly.
-> 3. Test /track with a real phone number and place one test order.
-> 4. Partner enquiries land in Table Editor → `partner_enquiries` and on WhatsApp.
+> **2026-09-25 security audit — Phase 1 already APPLIED to the live database**
+> (`supabase/migrations/002_privacy_and_partner.sql`). It is safe with both the old and new site:
+> - `event_enquiries` had RLS **off** and anon could SELECT/UPDATE/DELETE it → now RLS on, public can only INSERT.
+> - Public read of `orders` narrowed from *all history* to *last 36 hours* (interim, so the old live /track keeps working).
+> - Removed unneeded anon/authenticated grants (TRUNCATE, REFERENCES, TRIGGER; anon UPDATE/DELETE; anon writes on menu_config).
+> - Added `track_orders()` / `slot_counts()` read functions and the `partner_enquiries` table.
+> - Anti-abuse triggers: phone/name/items/total/slot/payment validation; max 5 orders per phone per hour and
+>   30 site-wide per 10 min (same for enquiries). Blocks fake-order floods that could fill every pickup slot.
+> - Backup taken first: `E:\Roll\db-backups\2026-09-25-before-hardening\` (CSV of every table + policies/grants).
+>
+> **Deploy checklist for the redesign:**
+> 1. `npm run build` and upload **the contents of** `out/` to Hostinger `public_html` (including the new `.htaccess`,
+>    which adds HSTS, Permissions-Policy and a Content-Security-Policy).
+> 2. **Right after upload**, run `supabase/migrations/003_close_public_order_reads.sql` in the Supabase SQL Editor
+>    (Phase 2 — removes the interim 36-hour public read completely). Don't run it before uploading.
+> 3. On your phone: place one test order, find it on /track, then cancel it from /admin.
+> 4. Supabase dashboard → Authentication → Sign In / Providers → Email → turn **off** "Allow new users to sign up"
+>    (only the admin account should exist; public sign-up just invites spam accounts).
+> 5. Partner enquiries land in Table Editor → `partner_enquiries` (and on WhatsApp).
 
 ---
 

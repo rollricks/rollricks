@@ -59,6 +59,19 @@ ErrorDocument 404 /404.html
   Header always set X-Content-Type-Options "nosniff"
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Force HTTPS for a year (only sent over HTTPS by browsers anyway).
+  Header always set Strict-Transport-Security "max-age=31536000"
+
+  # The site never needs camera / mic / location / payment APIs.
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+
+  # Content Security Policy — only our own files, Supabase (API +
+  # realtime websocket) and the Google Maps embed may load. Blocks any
+  # injected third-party script. 'unsafe-inline' is required for the
+  # Next.js static-export bootstrap + theme script (no server to add
+  # nonces). Keep in sync with scripts/csp-test-server.mjs.
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://www.google.com https://maps.google.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
 </IfModule>
 
 # ─────────────────────────────────────────────────────────
