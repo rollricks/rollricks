@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
+import { srcSetFor } from "@/lib/img";
 import { generateEventWhatsApp, WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { CheckCircle2, Cake, Users, Star, Sparkles, Camera } from "lucide-react";
 
@@ -275,6 +276,8 @@ export default function EventsPage() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={IMG.hero}
+            srcSet={srcSetFor(IMG.hero)}
+            sizes="(max-width: 640px) 90vw, 420px"
             alt=""
             className="w-full h-full object-cover opacity-20"
           />
@@ -282,10 +285,9 @@ export default function EventsPage() {
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={false}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-gold/30 mb-5"
+          className="rise inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-gold/30 mb-5"
         >
           <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
           <span className="text-xs font-bold text-gold uppercase tracking-wider">
@@ -294,31 +296,28 @@ export default function EventsPage() {
         </motion.div>
 
         <motion.h1
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={false}
           transition={{ duration: 0.6 }}
-          className="font-display text-5xl md:text-7xl text-gold tracking-wider leading-tight"
+          className="rise font-display text-[clamp(2.3rem,11vw,4.5rem)] text-gold tracking-wide leading-tight"
         >
           YOUR PARTY.
           <br />
           OUR ROLLS.
         </motion.h1>
         <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={false}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-soft font-body mt-5 max-w-xl mx-auto text-lg"
+          className="rise text-soft font-body mt-5 max-w-xl mx-auto text-lg"
         >
           Birthdays, weddings, college fests — we bring the live roll counter
           experience to your venue. Hot, fresh, and unforgettable.
         </motion.p>
 
         <motion.a
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={false}
           transition={{ duration: 0.6, delay: 0.4 }}
           href="#enquiry"
-          className="inline-flex items-center gap-2 mt-7 px-7 py-3 rounded-full bg-accent text-on-accent font-bold text-sm hover:brightness-110 active:scale-95 transition-all"
+          className="rise inline-flex items-center gap-2 mt-7 px-7 py-3 rounded-full bg-accent text-on-accent font-bold text-sm hover:brightness-110 active:scale-95 transition-all"
         >
           Book your event →
         </motion.a>
@@ -381,6 +380,8 @@ export default function EventsPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={evt.image}
+                srcSet={srcSetFor(evt.image)}
+                sizes="(max-width: 640px) 90vw, 420px"
                 alt={evt.label}
                 loading="lazy"
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -449,6 +450,8 @@ export default function EventsPage() {
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={pkg.image}
+                    srcSet={srcSetFor(pkg.image)}
+                    sizes="(max-width: 640px) 90vw, 420px"
                     alt={pkg.name}
                     loading="lazy"
                     className="w-full h-full object-cover"
@@ -604,6 +607,8 @@ export default function EventsPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={pkg.image}
+                  srcSet={srcSetFor(pkg.image)}
+                  sizes="(max-width: 640px) 90vw, 420px"
                   alt={pkg.name}
                   loading="lazy"
                   className="w-full h-full object-cover"

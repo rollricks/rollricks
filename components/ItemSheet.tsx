@@ -95,7 +95,7 @@ export default function ItemSheet() {
             </button>
 
             <div className="relative aspect-[4/3] w-full -mt-5 sm:mt-0 overflow-hidden">
-              <FoodImage item={item} eager />
+              <FoodImage item={item} eager sizes="(max-width: 640px) 100vw, 440px" />
               <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />
             </div>
 

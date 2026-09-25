@@ -116,4 +116,13 @@ node scripts/csp-test-server.mjs                  # optional: test out/ with pro
 - Keep it static-export compatible: no API routes, no server actions, no Next Image optimisation.
 - Colours only via theme tokens (`bg-base`, `bg-card`, `text-ink`, `text-gold`, `bg-accent`, `text-veg`, `text-nonveg`…). Always-dark areas (hero, banners) use `data-theme="dark"`.
 - Respect `prefers-reduced-motion`; videos load only when visible and fall back to posters on Data Saver.
+
+### Performance rules (added 2026-09-25 after a speed + responsive pass)
+- **Never hide content until JavaScript runs.** Above-the-fold entrance animations use the CSS `.rise` classes; scroll reveals use `<Reveal>` / `.reveal` (CSS scroll-driven animation, content always in the HTML). Framer Motion mount animations must use `initial={false}` + `.rise`. Measured: headline visible 4.5 s → 2.0 s on 4G.
+- **Videos** (`LoopVideo`): no download until visible *and* after the page `load` event; poster only for `priority` (hero). Hidden desktop/mobile variants never download.
+- **Photos:** every `.webp` in `/menu`, `/images/food`, `/images/story` has a `-480.webp` sibling — run `node scripts/make-thumbs.mjs` after adding photos; use `srcSetFor()` from `lib/img.ts` + a `sizes` hint. Desktop-only images go in `<picture><source media>` so phones skip them.
+- **Grid/flex children that contain horizontal scrollers need `min-w-0` / `minmax(0,1fr)`**, or they push text off-screen on 320–360 px phones (this was the story-section bug).
+- Fluid type for big headings (`text-[clamp(...)]`), check 320 / 360 / 390 / 412 / 768 / 1024 / 1440.
+- Fonts: only weights actually used (Playfair 700/900, DM Sans 400–700, Caveat 500, DM Mono 500 not preloaded).
+- Test like production: `node scripts/csp-test-server.mjs` (gzip + CSP) on :3006.
 - Commits in this repo are authored as `Dipanjan11 <118282072+Dipanjan11@users.noreply.github.com>`.

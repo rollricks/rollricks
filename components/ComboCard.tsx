@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import type { Combo } from "@/lib/combo-data";
+import { srcSetFor } from "@/lib/img";
 
 interface ComboCardProps {
   combo: Combo;
@@ -44,6 +45,8 @@ export default function ComboCard({ combo, featured }: ComboCardProps) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={combo.image}
+            srcSet={srcSetFor(combo.image)}
+            sizes="(max-width: 640px) 85vw, 380px"
             alt={combo.name}
             loading="lazy"
             className="w-full h-full object-cover"

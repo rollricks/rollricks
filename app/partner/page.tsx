@@ -139,28 +139,26 @@ Message: ${form.message.trim() || "—"}`;
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0E0803] via-[#0E0803]/70 to-[#0E0803]/30" />
         <div className="relative max-w-6xl mx-auto px-4 pt-24 pb-14 sm:pt-32 sm:pb-20">
-          <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="font-hand text-3xl text-[#F2C14E]">
+          <motion.p initial={false} className="rise font-hand text-3xl text-[#F2C14E]">
             Partner with RollRicks
           </motion.p>
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={false}
             transition={{ delay: 0.1 }}
-            className="mt-1 font-display font-black text-5xl sm:text-7xl text-[#FFF8EE] leading-[0.95] tracking-tight"
+            className="rise mt-1 font-display font-black text-5xl sm:text-7xl text-[#FFF8EE] leading-[0.95] tracking-tight"
           >
             Your own food cart.
             <br />
             <span className="text-[#F2C14E]">Our proven system.</span>
           </motion.h1>
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={false}
             transition={{ delay: 0.2 }}
-            className="mt-6 max-w-lg text-lg text-[#E8D5B5] leading-relaxed"
+            className="rise mt-6 max-w-lg text-lg text-[#E8D5B5] leading-relaxed"
           >
             Want to run your own food business but don&apos;t know where to start? Invest in your own RollRicks cart and run it. We set it up and stand behind you: cart, branding, menu, training, suppliers, ordering tech and marketing. Or bring us your own idea and we&apos;ll tell you honestly if it can work.
           </motion.p>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-8 flex flex-wrap gap-3">
+          <motion.div initial={false} transition={{ delay: 0.3 }} className="rise mt-8 flex flex-wrap gap-3">
             <a href="#enquire" className="inline-flex items-center gap-2 h-12 px-6 rounded-full bg-[#F2C14E] text-[#1A0A00] font-bold text-sm uppercase tracking-wider glow">
               Interested? Talk to us <ArrowRight className="w-4 h-4" />
             </a>

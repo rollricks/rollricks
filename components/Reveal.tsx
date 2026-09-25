@@ -1,25 +1,19 @@
-"use client";
+import type { HTMLAttributes } from "react";
 
-import { motion, type HTMLMotionProps } from "framer-motion";
-
-// Section reveal: short fade + rise when scrolled into view, once.
-// MotionConfig reducedMotion="user" (LayoutShell) drops the movement
-// for visitors who prefer reduced motion.
+// Section reveal with zero JavaScript: content is always rendered and
+// visible; browsers that support CSS scroll-driven animations fade it
+// in as it enters the viewport (see .reveal in globals.css). `delay`
+// and `y` are accepted for backwards compatibility and ignored.
 export default function Reveal({
-  delay = 0,
-  y = 24,
+  className = "",
   children,
+  delay,
+  y,
   ...rest
-}: HTMLMotionProps<"div"> & { delay?: number; y?: number }) {
+}: HTMLAttributes<HTMLDivElement> & { delay?: number; y?: number; [k: `data-${string}`]: string | undefined }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.45, ease: "easeOut", delay }}
-      {...rest}
-    >
+    <div className={`reveal ${className}`} {...rest}>
       {children}
-    </motion.div>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   ArrowRight,
   Leaf,
@@ -19,6 +18,7 @@ import { hitItems } from "@/lib/menu-data";
 import { useMenuAvailability } from "@/lib/useMenuAvailability";
 import { BRAND, HOURS, LOCATIONS, addressLine } from "@/lib/site";
 import { FAQ } from "@/lib/faq";
+import { srcSetFor } from "@/lib/img";
 import { REVIEWS } from "@/lib/reviews";
 import MenuItem from "@/components/MenuItem";
 import Seal from "@/components/Seal";
@@ -28,11 +28,6 @@ import Reveal from "@/components/Reveal";
 import Faq from "@/components/Faq";
 import LoopVideo from "@/components/LoopVideo";
 import BrandRibbon from "@/components/BrandRibbon";
-
-const rise = {
-  hidden: { opacity: 0, y: 24 },
-  visible: (i: number) => ({ opacity: 1, y: 0, transition: { delay: 0.12 * i, duration: 0.5, ease: "easeOut" } }),
-};
 
 const serveTiles = [
   { label: "Rolls", emoji: "🌯", href: "/menu/?section=Rolls" },
@@ -97,6 +92,7 @@ export default function HomePage() {
             src="/videos/hero-cart.mp4"
             poster="/videos/hero-cart-poster.webp"
             label="The RollRicks cart lit up at night in Katanga, Jabalpur"
+            priority
             // This clip has a lot of night sky on top: zoom + lift so the seal
             // and menu lightboxes sit above the headline.
             className="w-full h-full object-cover object-top origin-top scale-125 -translate-y-[21%]"
@@ -107,91 +103,73 @@ export default function HomePage() {
 
         {/* Desktop: warm food spread as a dim backdrop */}
         <div className="hidden md:block absolute inset-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/cart/hero-night.webp"
-            alt=""
-            className="w-full h-full object-cover opacity-25 blur-[3px] scale-105 kenburns"
-            fetchPriority="high"
-          />
+          <picture>
+            <source media="(min-width: 768px)" srcSet="/images/cart/hero-night.webp" />
+            {/* 1x1 transparent GIF for phones — the real image is desktop-only */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
+              alt=""
+              className="w-full h-full object-cover opacity-25 blur-[3px] scale-105 kenburns"
+            />
+          </picture>
           <div className="absolute inset-0 bg-gradient-to-r from-[#0E0803] via-[#0E0803]/85 to-[#0E0803]/40" />
         </div>
 
-        <div className="relative z-10 max-w-6xl mx-auto px-4 min-h-[min(calc(100svh-4rem),880px)] md:min-h-[720px] flex items-end md:items-center md:grid md:grid-cols-[1.1fr_0.9fr] md:gap-10">
-          <div className="w-full pb-7 pt-[50svh] md:py-16 max-w-xl">
-            <motion.div custom={0} variants={rise} initial="hidden" animate="visible" className="mb-4">
+        <div className="relative z-10 max-w-6xl mx-auto px-4 min-h-[min(calc(100svh-4rem),880px)] md:min-h-[720px] flex items-end md:items-center md:grid md:grid-cols-[minmax(0,1fr)_250px] lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:gap-8 lg:gap-10">
+          <div className="w-full pb-6 pt-[max(38svh,190px)] min-[400px]:pt-[48svh] md:py-16 max-w-xl">
+            <div className="rise rise-1 mb-4">
               <StatusPill className="bg-black/50 backdrop-blur" />
-            </motion.div>
+            </div>
 
-            <motion.p
-              custom={0.5}
-              variants={rise}
-              initial="hidden"
-              animate="visible"
-              className="hidden md:block font-display font-black text-7xl lg:text-8xl leading-[0.92] text-[#F2C14E] tracking-tight drop-shadow-[0_4px_24px_rgba(242,193,78,0.25)]"
+            <p
+              className="rise rise-1 hidden md:block font-display font-black text-[clamp(3.5rem,8.5vw,6rem)] leading-[0.92] text-[#F2C14E] tracking-tight drop-shadow-[0_4px_24px_rgba(242,193,78,0.25)]"
               aria-hidden="true"
             >
               ROLLRICKS
-            </motion.p>
-            <motion.p
-              custom={0.8}
-              variants={rise}
-              initial="hidden"
-              animate="visible"
-              className="hidden md:block mt-2 text-[11px] uppercase tracking-[0.4em] text-[#E8D5B5]"
+            </p>
+            <p
+              className="rise rise-2 hidden md:block mt-2 text-[11px] uppercase tracking-[0.4em] text-[#E8D5B5]"
             >
               Sealed with Taste
-            </motion.p>
+            </p>
 
-            <motion.h1
-              custom={1}
-              variants={rise}
-              initial="hidden"
-              animate="visible"
-              className="md:mt-7 font-display italic font-black text-[2rem] leading-[1.08] sm:text-4xl lg:text-[2.6rem] text-[#FFF8EE] tracking-tight"
+            <h1
+              className="rise rise-2 md:mt-7 font-display italic font-black text-[clamp(1.55rem,7.4vw,2.6rem)] leading-[1.08] text-[#FFF8EE] tracking-tight [text-wrap:balance]"
             >
               <span className="sr-only">RollRicks — </span>
               &ldquo;Jo Dil Se Banata Hai,
               <br />
               Vo Dil Tak Jaata Hai.&rdquo;
-            </motion.h1>
-            <motion.p
-              custom={1.6}
-              variants={rise}
-              initial="hidden"
-              animate="visible"
-              className="mt-2 font-hand text-[1.7rem] leading-none text-[#F2C14E]"
+            </h1>
+            <p
+              className="rise rise-3 mt-2 font-hand text-[clamp(1.35rem,6vw,1.7rem)] leading-none text-[#F2C14E]"
             >
               5-star food. Street-side.
-            </motion.p>
+            </p>
 
-            <motion.div custom={2.2} variants={rise} initial="hidden" animate="visible" className="mt-6 grid grid-cols-2 sm:flex gap-3">
+            <div className="rise rise-4 mt-5 sm:mt-6 grid grid-cols-2 sm:flex gap-2.5 sm:gap-3">
               <Link
                 href="/menu/"
-                className="inline-flex items-center justify-center gap-1.5 h-12 px-4 sm:px-6 whitespace-nowrap rounded-full bg-[#F2C14E] text-[#1A0A00] font-bold text-[13px] sm:text-sm uppercase tracking-wide sm:tracking-wider glow hover:brightness-110 active:scale-95 transition-all"
+                className="inline-flex items-center justify-center gap-1.5 h-12 px-3 min-[360px]:px-4 sm:px-6 whitespace-nowrap rounded-full bg-[#F2C14E] text-[#1A0A00] font-bold text-[12px] min-[360px]:text-[13px] sm:text-sm uppercase tracking-wide sm:tracking-wider glow hover:brightness-110 active:scale-95 transition-all"
               >
                 Order now <ArrowRight className="w-4 h-4" />
               </Link>
               <a
                 href="#serve"
-                className="inline-flex items-center justify-center h-12 px-4 sm:px-6 whitespace-nowrap rounded-full border border-[#F2C14E]/70 text-[#F2C14E] font-bold text-[13px] sm:text-sm uppercase tracking-wide sm:tracking-wider bg-black/30 backdrop-blur hover:bg-[#F2C14E]/10 active:scale-95 transition-all"
+                className="inline-flex items-center justify-center h-12 px-3 min-[360px]:px-4 sm:px-6 whitespace-nowrap rounded-full border border-[#F2C14E]/70 text-[#F2C14E] font-bold text-[12px] min-[360px]:text-[13px] sm:text-sm uppercase tracking-wide sm:tracking-wider bg-black/30 backdrop-blur hover:bg-[#F2C14E]/10 active:scale-95 transition-all"
               >
                 Explore menu
               </a>
-            </motion.div>
-            <motion.p custom={2.8} variants={rise} initial="hidden" animate="visible" className="mt-4 text-xs text-[#E8D5B5]/85 leading-relaxed">
+            </div>
+            <p className="rise rise-5 mt-4 text-xs text-[#E8D5B5]/85 leading-relaxed">
               📍 {addressLine(loc)} · {HOURS.days}, {HOURS.label}
               <span className="text-[#E8D5B5]/60"> · {HOURS.closedNote}</span>
-            </motion.p>
+            </p>
           </div>
 
           {/* Desktop: the cart video as a tall glowing story card */}
-          <motion.div
-            initial={{ opacity: 0, y: 30, rotate: 0 }}
-            animate={{ opacity: 1, y: 0, rotate: 2 }}
-            transition={{ duration: 0.7, delay: 0.3, ease: "easeOut" }}
-            className="hidden md:block relative justify-self-end w-[320px] lg:w-[360px]"
-          >
+          <div className="rise rise-3 hidden md:block relative justify-self-end w-[250px] lg:w-[340px] xl:w-[360px] [rotate:2deg]">
             <div className="relative aspect-[9/16] rounded-[2rem] overflow-hidden border border-[#F2C14E]/30 shadow-[0_30px_80px_-20px_rgba(242,193,78,0.35)]">
               <LoopVideo
                 src="/videos/hero-cart.mp4"
@@ -200,12 +178,12 @@ export default function HomePage() {
                 className="w-full h-full object-cover"
               />
             </div>
-            <p className="absolute -left-40 bottom-10 font-hand text-2xl text-[#F2C14E] -rotate-6 leading-tight text-right">
+            <p className="hidden lg:block absolute -left-40 bottom-10 font-hand text-2xl text-[#F2C14E] -rotate-6 leading-tight text-right">
               Katanga,
               <br />
               every evening ♥
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -249,7 +227,7 @@ export default function HomePage() {
                 className={`group relative block aspect-[4/5] sm:aspect-[16/10] rounded-3xl overflow-hidden ring-2 ring-transparent ${t.ring} transition-all`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={t.img} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <img src={t.img} srcSet={srcSetFor(t.img)} sizes="(max-width: 640px) 50vw, 560px" alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
                 <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
                   <span
@@ -259,7 +237,7 @@ export default function HomePage() {
                   >
                     <span className="w-2 h-2 rounded-full bg-white" /> {t.label}
                   </span>
-                  <p className="mt-2 font-display font-black text-3xl sm:text-5xl text-white">{t.label} Menu</p>
+                  <p className="mt-2 font-display font-black text-[clamp(1.4rem,6.8vw,3rem)] leading-[1.05] text-white">{t.label} Menu</p>
                   <p className="text-xs sm:text-sm text-white/80 mt-1">{t.sub}</p>
                 </div>
               </Link>
@@ -286,7 +264,7 @@ export default function HomePage() {
         <Reveal className="rounded-3xl border border-line bg-card p-5 sm:p-10">
           <p className="font-hand text-2xl text-gold">No login. No queue.</p>
           <h2 className="font-display font-black text-3xl sm:text-4xl text-ink">How it works</h2>
-          <div className="mt-5 grid grid-cols-[1fr_38%] sm:grid-cols-[1fr_220px] lg:grid-cols-[1fr_260px] gap-5 sm:gap-10 items-center">
+          <div className="mt-5 grid grid-cols-1 min-[360px]:grid-cols-[minmax(0,1fr)_36%] sm:grid-cols-[minmax(0,1fr)_220px] lg:grid-cols-[minmax(0,1fr)_260px] gap-5 sm:gap-10 items-center">
           <div>
           <ol className="grid gap-5">
             {steps.map((s) => (
@@ -300,7 +278,7 @@ export default function HomePage() {
             ))}
           </ol>
           </div>
-          <div className="relative">
+          <div className="relative hidden min-[360px]:block">
             <div className="aspect-[9/16] rounded-2xl overflow-hidden border border-line bg-raised shadow-xl rotate-2">
               <LoopVideo
                 src="/videos/handover.mp4"
@@ -320,7 +298,7 @@ export default function HomePage() {
       {/* ── OUR STORY: FROM CODE TO KATHI ───────────────── */}
       <div className="relative mt-6 bg-raised/60 torn-top">
       <section id="story" className="pt-20 pb-16 px-4 max-w-6xl mx-auto scroll-mt-20">
-        <div className="grid lg:grid-cols-[1fr_1.1fr] gap-10 lg:gap-14 items-center">
+        <div className="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] gap-10 lg:gap-14 items-center">
           <Reveal>
             <p className="font-hand text-3xl text-gold -rotate-2 inline-block">Our Story</p>
             <h2 className="mt-1 font-display font-black text-5xl sm:text-6xl text-ink leading-[0.95] tracking-tight">
@@ -351,33 +329,29 @@ export default function HomePage() {
           </Reveal>
 
           {/* scrapbook collage */}
-          <div className="relative">
+          <div className="relative min-w-0">
             <span className="hidden sm:block absolute -top-6 right-4 z-10 font-hand text-2xl text-gold rotate-6">
               Real people. Real food. Real moments.
             </span>
             <div className="flex lg:grid lg:grid-cols-2 gap-5 overflow-x-auto lg:overflow-visible snap-x scrollbar-hide -mx-4 px-4 py-6 lg:mx-0 lg:px-0">
               {polaroids.map((p, i) => (
-                <motion.figure
+                <figure
                   key={p.src}
-                  initial={{ opacity: 0, y: 30, rotate: 0 }}
-                  whileInView={{ opacity: 1, y: 0, rotate: p.rotate }}
-                  viewport={{ once: true, margin: "-40px" }}
-                  transition={{ duration: 0.5, delay: i * 0.08 }}
-                  whileHover={{ rotate: 0, scale: 1.03 }}
-                  className="polaroid shrink-0 snap-center w-[70%] min-[420px]:w-[55%] lg:w-auto"
+                  style={{ rotate: `${p.rotate}deg` }}
+                  className="reveal polaroid shrink-0 snap-center w-[70%] min-[420px]:w-[55%] lg:w-auto transition-[rotate,scale] duration-300 hover:[rotate:0deg] hover:[scale:1.03]"
                 >
                   <div className="aspect-[4/3] overflow-hidden bg-[#1A0F07]">
                     {p.video ? (
                       <LoopVideo src={p.video} poster={p.src} label={p.label} className="w-full h-full object-cover object-[center_40%]" />
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={p.src} alt={p.label} loading="lazy" className="w-full h-full object-cover" />
+                      <img src={p.src} srcSet={srcSetFor(p.src)} sizes="(max-width: 1024px) 70vw, 300px" alt={p.label} loading="lazy" className="w-full h-full object-cover" />
                     )}
                   </div>
                   <figcaption className="pt-2 text-center font-hand text-xl text-[#3D1A05] leading-none">
                     {p.label} <span className="text-[#C0392B]">♥</span>
                   </figcaption>
-                </motion.figure>
+                </figure>
               ))}
             </div>
           </div>
@@ -407,13 +381,9 @@ export default function HomePage() {
           {journey.map((j, i) => {
             const next = j.stage === "Next";
             return (
-              <motion.li
+              <li
                 key={j.title}
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.07 }}
-                className={`relative snap-start shrink-0 w-[58%] min-[420px]:w-[42%] lg:w-auto rounded-2xl p-4 border ${
+                className={`reveal relative snap-start shrink-0 w-[58%] min-[420px]:w-[42%] lg:w-auto rounded-2xl p-4 border ${
                   next ? "border-dashed border-line-strong bg-transparent" : "border-line bg-card"
                 }`}
               >
@@ -429,7 +399,7 @@ export default function HomePage() {
                 {i < journey.length - 1 && (
                   <ArrowRight className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-line-strong z-10" />
                 )}
-              </motion.li>
+              </li>
             );
           })}
         </ol>
@@ -441,7 +411,7 @@ export default function HomePage() {
       <section className="py-9 sm:py-12 px-4 max-w-6xl mx-auto">
         <Reveal data-theme="dark" className="relative overflow-hidden rounded-3xl bg-[#0E0803] min-h-[420px] flex items-end">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/food/tikka-fire.webp" alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+          <img src="/images/food/tikka-fire.webp" srcSet={srcSetFor("/images/food/tikka-fire.webp")} sizes="(max-width: 640px) 100vw, 1100px" alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover opacity-80" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0E0803] via-[#0E0803]/75 to-transparent sm:bg-gradient-to-r sm:from-[#0E0803] sm:via-[#0E0803]/80 sm:to-transparent" />
           <div className="relative p-6 sm:p-12 max-w-xl">
             <p className="font-hand text-2xl text-[#F2C14E]">Party orders · Bulk orders · Special requests</p>
@@ -559,7 +529,7 @@ export default function HomePage() {
                 aria-label="See more on Instagram"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <img src={src} srcSet={srcSetFor(src)} sizes="(max-width: 640px) 44vw, 240px" alt="" loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               </a>
             </Reveal>
           ))}
@@ -581,7 +551,7 @@ export default function HomePage() {
             <Reveal key={l.id} className="rounded-3xl border border-line bg-card overflow-hidden flex flex-col">
               <div data-theme="dark" className="relative h-40 bg-[#0E0803]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/images/food/chinese-tandoor-mojito.webp" alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover opacity-75" />
+                <img src="/images/food/chinese-tandoor-mojito.webp" srcSet={srcSetFor("/images/food/chinese-tandoor-mojito.webp")} sizes="(max-width: 768px) 100vw, 480px" alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover opacity-75" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0E0803] via-[#0E0803]/40 to-transparent" />
                 <div className="absolute left-5 bottom-4 right-5 flex items-end gap-3">
                   <Seal size={52} className="ring-2 ring-[#F2C14E]/60" />

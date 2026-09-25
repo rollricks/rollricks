@@ -19,28 +19,29 @@ export const viewport: Viewport = {
 // Caveat is the handwritten accent from the menu creatives; DM Mono
 // stays for order IDs and prices in checkout / admin.
 const playfair = Playfair_Display({
-  weight: ["700", "800", "900"],
+  weight: ["700", "900"],
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
 });
 
 const dmSans = DM_Sans({
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
   variable: "--font-dm-sans",
   display: "swap",
 });
 
 const dmMono = DM_Mono({
-  weight: ["400", "500"],
+  weight: ["500"],
   subsets: ["latin"],
   variable: "--font-dm-mono",
   display: "swap",
+  preload: false, // only order IDs / checkout use it
 });
 
 const caveat = Caveat({
-  weight: ["500", "700"],
+  weight: ["500"],
   subsets: ["latin"],
   variable: "--font-hand",
   display: "swap",

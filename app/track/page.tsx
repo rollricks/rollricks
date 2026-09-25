@@ -153,10 +153,9 @@ export default function TrackPage() {
       <div className="max-w-lg mx-auto space-y-8">
         {/* Title */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={false}
           transition={{ duration: 0.5 }}
-          className="text-center"
+          className="rise text-center"
         >
           <h1 className="font-display text-5xl md:text-6xl text-gold tracking-wider">
             TRACK ORDER
@@ -168,11 +167,10 @@ export default function TrackPage() {
 
         {/* Phone Input Form */}
         <motion.form
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={false}
           transition={{ duration: 0.5, delay: 0.15 }}
           onSubmit={handleSubmit}
-          className="space-y-4"
+          className="rise space-y-4"
         >
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted font-body text-lg">
@@ -205,10 +203,9 @@ export default function TrackPage() {
           {searching && (
             <motion.div
               key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={false}
               exit={{ opacity: 0 }}
-              className="space-y-4"
+              className="rise space-y-4"
             >
               <div className="h-16 rounded-xl bg-raised animate-pulse" />
               <div className="h-40 rounded-xl bg-raised animate-pulse" />
@@ -220,11 +217,10 @@ export default function TrackPage() {
           {!searching && orders.length > 0 && (
             <motion.div
               key="orders"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={false}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4 }}
-              className="space-y-6"
+              className="rise space-y-6"
             >
               {/* Active Orders */}
               {activeOrders.length > 0 && (
@@ -235,9 +231,8 @@ export default function TrackPage() {
                   {activeOrders.map((order) => (
                     <motion.div
                       key={order.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl bg-card border border-line overflow-hidden"
+                      initial={false}
+                      className="rise rounded-xl bg-card border border-line overflow-hidden"
                     >
                       {/* Order header - always visible */}
                       <button
@@ -276,11 +271,10 @@ export default function TrackPage() {
                       <AnimatePresence>
                         {expandedOrder === order.id && (
                           <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
+                            initial={false}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.25 }}
-                            className="overflow-hidden"
+                            className="rise overflow-hidden"
                           >
                             <div className="px-4 pb-4 space-y-4 border-t border-line">
                               {/* Status tracker */}
@@ -338,9 +332,8 @@ export default function TrackPage() {
                   {pastOrders.map((order) => (
                     <motion.div
                       key={order.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="rounded-xl bg-card border border-line overflow-hidden"
+                      initial={false}
+                      className="rise rounded-xl bg-card border border-line overflow-hidden"
                     >
                       <button
                         onClick={() =>
@@ -369,11 +362,10 @@ export default function TrackPage() {
                       <AnimatePresence>
                         {expandedOrder === order.id && (
                           <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
+                            initial={false}
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.25 }}
-                            className="overflow-hidden"
+                            className="rise overflow-hidden"
                           >
                             <div className="px-4 pb-4 border-t border-line">
                               <ul className="space-y-1.5 pt-3">
@@ -410,10 +402,9 @@ export default function TrackPage() {
           {!searching && notFound && hasSearched && (
             <motion.div
               key="notfound"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={false}
               exit={{ opacity: 0 }}
-              className="text-center space-y-4 py-8"
+              className="rise text-center space-y-4 py-8"
             >
               <div className="text-5xl">🤷</div>
               <p className="text-soft font-body text-lg">
@@ -432,10 +423,9 @@ export default function TrackPage() {
           {!searching && error && hasSearched && (
             <motion.div
               key="error"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={false}
               exit={{ opacity: 0 }}
-              className="text-center space-y-4 py-8"
+              className="rise text-center space-y-4 py-8"
             >
               <div className="rounded-xl bg-nonveg/10 border border-nonveg/30 p-5">
                 <p className="text-nonveg font-body font-medium">

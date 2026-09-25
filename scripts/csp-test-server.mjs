@@ -7,6 +7,7 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import zlib from "node:zlib";
 
 const ROOT = path.resolve("out");
 const PORT = Number(process.env.PORT || 3006);
@@ -28,10 +29,15 @@ http
     if (!file.startsWith(ROOT)) return res.writeHead(403).end();
     if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, "index.html");
     if (!fs.existsSync(file)) file = path.join(ROOT, "404.html");
+    const type = TYPES[path.extname(file)] || "application/octet-stream";
+    // gzip text like Hostinger/LiteSpeed does, so size tests are realistic
+    const gz = /text|javascript|json|xml|svg|manifest/.test(type) && /gzip/.test(req.headers["accept-encoding"] || "");
     res.writeHead(fs.existsSync(file) && file.endsWith("404.html") && !p.includes("404") ? 404 : 200, {
-      "Content-Type": TYPES[path.extname(file)] || "application/octet-stream",
+      "Content-Type": type,
       "Content-Security-Policy": csp,
+      ...(gz ? { "Content-Encoding": "gzip" } : {}),
     });
-    fs.createReadStream(file).pipe(res);
+    const stream = fs.createReadStream(file);
+    (gz ? stream.pipe(zlib.createGzip()) : stream).pipe(res);
   })
   .listen(PORT, () => console.log(`CSP test server on http://localhost:${PORT}\nCSP: ${csp}`));

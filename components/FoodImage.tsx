@@ -1,5 +1,6 @@
 import type { MenuItem, Section } from "@/lib/menu-data";
 import { SECTIONS } from "@/lib/menu-data";
+import { srcSetFor } from "@/lib/img";
 
 // Real photo when we have one; otherwise a branded parchment tile
 // (seal watermark + section glyph) rather than a stock photo.
@@ -7,16 +8,21 @@ export default function FoodImage({
   item,
   className = "",
   eager = false,
+  sizes = "(max-width: 640px) 50vw, 300px",
 }: {
   item: Pick<MenuItem, "name" | "image" | "section">;
   className?: string;
   eager?: boolean;
+  /** layout width hint for picking the thumbnail vs full photo */
+  sizes?: string;
 }) {
   if (item.image) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={item.image}
+        srcSet={srcSetFor(item.image)}
+        sizes={sizes}
         alt={item.name}
         loading={eager ? "eager" : "lazy"}
         decoding="async"

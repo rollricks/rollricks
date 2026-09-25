@@ -212,3 +212,33 @@ body::before {
   mask: linear-gradient(#000, #000) bottom / 100% calc(100% - 14px) no-repeat,
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 14' preserveAspectRatio='none'%3E%3Cpath d='M0 14 L0 7 L6 4 L12 8 L20 3 L28 7 L36 2 L44 6 L52 3 L60 8 L68 2 L76 6 L84 3 L92 8 L100 4 L108 7 L114 3 L120 6 L120 14 Z'/%3E%3C/svg%3E") top / 100% 14px no-repeat;
 }
+
+/* ── Load-time + scroll animations without JavaScript ───────────────
+   Content is always in the HTML and visible; CSS only animates it.
+   • .rise   — hero entrance, runs on first paint (no hydration wait)
+   • .reveal — scroll-in; uses CSS scroll-driven animation where the
+     browser supports it (Chrome/Android), otherwise simply visible.   */
+@keyframes rise-in {
+  from { opacity: 0; translate: 0 18px; }
+  to   { opacity: 1; translate: 0 0; }
+}
+.rise { animation: rise-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.rise-1 { animation-delay: 0.05s; }
+.rise-2 { animation-delay: 0.15s; }
+.rise-3 { animation-delay: 0.25s; }
+.rise-4 { animation-delay: 0.35s; }
+.rise-5 { animation-delay: 0.45s; }
+
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: rise-in linear both;
+    animation-timeline: view();
+    /* fixed distance, so tall blocks (story text) are fully visible
+       after ~90px of scrolling instead of a % of their height */
+    animation-range: entry 0px entry 90px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .reveal { animation: none !important; }
+}
