@@ -5,6 +5,11 @@ const nextConfig = {
   // No Node.js server required at runtime.
   output: "export",
 
+  // Run the dev server in its own folder so a production build (which
+  // must use the default .next → out/) can run at the same time without
+  // breaking it:  NEXT_DIST_DIR=.next-dev npm run dev
+  distDir: process.env.NEXT_DIST_DIR || ".next",
+
   // Hostinger / Apache serves /menu/index.html when the URL is /menu/
   // (with trailing slash). Without this, hard-loads to /menu would 404.
   trailingSlash: true,

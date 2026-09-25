@@ -97,8 +97,9 @@ export default function HomePage() {
             src="/videos/hero-cart.mp4"
             poster="/videos/hero-cart-poster.webp"
             label="The RollRicks cart lit up at night in Katanga, Jabalpur"
-            className="w-full h-full object-cover object-top"
-            eager
+            // This clip has a lot of night sky on top: zoom + lift so the seal
+            // and menu lightboxes sit above the headline.
+            className="w-full h-full object-cover object-top origin-top scale-125 -translate-y-[21%]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0E0803] from-[18%] via-[#0E0803]/70 via-[38%] to-transparent to-[60%]" />
           <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0E0803]/70 to-transparent" />
