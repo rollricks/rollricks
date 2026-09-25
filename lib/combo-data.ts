@@ -13,23 +13,20 @@ export type Combo = {
   image?: string;
 };
 
-// Combo hero images — point at RollRicks' own photography for the
-// dominant item in the combo. Drinks/chicken fall back to verified
-// Unsplash since the cart hasn't shot those yet.
+// Combo hero images — RollRicks' own photography (Zomato combo shoot).
 const IMG = {
   roll: "/menu/roll.webp",
-  paneerTikka: "/menu/paneer-tikka.webp",
+  paneerTikka: "/menu/paneer-tikka-skewers.webp",
   cheeseBreadRoll: "/menu/cheese-bread-roll.webp",
-  noodles: "/menu/noodles.webp",
-  friedRice: "/menu/fried-rice.webp",
-  malaiChaap: "/menu/malai-chaap.webp",
-  chickenTikka: "/menu/chicken-tikka.webp",
-  chickenRoll:
-    "https://images.unsplash.com/photo-1699728088614-7d1d4277414b?auto=format&fit=crop&w=800&q=70",
-  coldCoffee:
-    "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=800&q=70",
-  mojito:
-    "https://images.unsplash.com/photo-1551782450-3939704166fc?auto=format&fit=crop&w=800&q=70",
+  noodles: "/menu/manchurian-noodles.webp",
+  friedRice: "/menu/paneer-fried-rice.webp",
+  malaiChaap: "/menu/malai-soya-chaap.webp",
+  chickenTikka: "/menu/malai-chicken-tikka.webp",
+  chickenAllMix: "/menu/chicken-all-mix.webp",
+  rollCoffee: "/images/food/combo-roll-coffee.webp",
+  chickenFeast: "/images/food/combo-chicken-feast.webp",
+  rollsMojitos: "/images/food/combo-rolls-mojitos.webp",
+  vegRoll: "/menu/veg-roll.webp",
 } as const;
 
 export const combos: Combo[] = [
@@ -48,7 +45,7 @@ export const combos: Combo[] = [
     savings: 20,
     type: "veg",
     featured: true,
-    image: IMG.roll,
+    image: IMG.vegRoll,
   },
   // PANEER LOVERS — paneer tikka roll + cold coffee
   {
@@ -65,7 +62,7 @@ export const combos: Combo[] = [
     savings: 40,
     type: "veg",
     featured: true,
-    image: IMG.paneerTikka,
+    image: IMG.rollCoffee,
   },
   {
     id: "combo-chicken-hit",
@@ -81,7 +78,7 @@ export const combos: Combo[] = [
     savings: 40,
     type: "nonveg",
     featured: true,
-    image: IMG.chickenRoll,
+    image: IMG.chickenFeast,
   },
 
   // ─── More combos shown on menu page only ──────────────────
@@ -99,7 +96,7 @@ export const combos: Combo[] = [
     savings: 30,
     type: "veg",
     featured: true,
-    image: IMG.roll,
+    image: IMG.vegRoll,
   },
   {
     id: "combo-chaap-night",
@@ -179,7 +176,7 @@ export const combos: Combo[] = [
     originalPrice: 548,
     savings: 99,
     type: "nonveg",
-    image: IMG.friedRice,
+    image: IMG.chickenAllMix,
   },
   {
     id: "combo-family-feast",
@@ -196,7 +193,7 @@ export const combos: Combo[] = [
     savings: 81,
     type: "both",
     featured: true,
-    image: IMG.chickenRoll,
+    image: IMG.rollsMojitos,
   },
 ];
 

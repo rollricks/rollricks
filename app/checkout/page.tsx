@@ -9,6 +9,7 @@ import { useCart } from "@/context/CartContext";
 import { supabase } from "@/lib/supabase";
 import { generateOrderWhatsApp, generatePaymentWhatsApp, WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { buildUpiLink, SLOT_CAPACITY } from "@/lib/upi";
+import { fetchSlotCounts } from "@/lib/slots";
 
 type Step = 1 | 2 | 3;
 
@@ -119,19 +120,7 @@ export default function CheckoutPage() {
     let cancelled = false;
     (async () => {
       try {
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-        const { data } = await supabase
-          .from("orders")
-          .select("pickup_time, status")
-          .gte("created_at", startOfDay.toISOString())
-          .limit(200);
-        const counts: Record<string, number> = {};
-        (data ?? []).forEach((row) => {
-          if (row.status === "cancelled") return;
-          const slot = row.pickup_time;
-          if (typeof slot === "string") counts[slot] = (counts[slot] || 0) + 1;
-        });
+        const counts = await fetchSlotCounts();
         if (!cancelled) setSlotFill(counts);
       } catch {
         // ignore — submit-time check is the real guard
@@ -187,19 +176,7 @@ export default function CheckoutPage() {
       // resubmits.
       try {
         const idempotencyKey = idempotencyKeyRef.current;
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const { data: slotRows } = await supabase
-          .from("orders")
-          .select("status")
-          .gte("created_at", startOfDay.toISOString())
-          .eq("pickup_time", pickupTime)
-          .limit(50);
-
-        const activeInSlot = (slotRows ?? []).filter(
-          (r) => r.status !== "cancelled"
-        ).length;
+        const activeInSlot = (await fetchSlotCounts())[pickupTime] ?? 0;
         if (activeInSlot >= SLOT_CAPACITY) {
           setSlotFill((prev) => ({ ...prev, [pickupTime]: activeInSlot }));
           setErrors({
@@ -298,23 +275,23 @@ export default function CheckoutPage() {
   // QR Payment screen
   if (showQR) {
     return (
-      <main className="min-h-screen bg-[#09090b] flex items-center justify-center px-4">
+      <main className="min-h-screen bg-base flex items-center justify-center px-4">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", stiffness: 200, damping: 20 }}
           className="text-center flex flex-col items-center gap-5 max-w-sm w-full"
         >
-          <div className="bg-[#111] border border-[#27272a] rounded-xl px-6 py-4">
-            <p className="text-sm text-[#71717a] mb-1">Order ID</p>
-            <p className="font-mono text-2xl text-[#FFD600]">#{orderId}</p>
+          <div className="bg-card border border-line rounded-xl px-6 py-4">
+            <p className="text-sm text-muted mb-1">Order ID</p>
+            <p className="font-mono text-2xl text-gold">#{orderId}</p>
           </div>
 
-          <h1 className="font-display text-3xl text-[#e4e4e7] tracking-wider">
+          <h1 className="font-display text-3xl text-ink tracking-wider">
             SCAN &amp; PAY
           </h1>
-          <p className="text-sm text-[#a1a1aa] font-body">
-            Pay <span className="text-[#FFD600] font-bold">₹{totalPrice || "—"}</span> via UPI — your order ID is auto-attached
+          <p className="text-sm text-soft font-body">
+            Pay <span className="text-gold font-bold">₹{totalPrice || "—"}</span> via UPI — your order ID is auto-attached
           </p>
 
           {/* Dynamic QR Code (encodes amount + orderId so the merchant
@@ -330,7 +307,7 @@ export default function CheckoutPage() {
                 className="rounded-xl block"
               />
             ) : (
-              <div className="w-[260px] h-[260px] flex items-center justify-center text-[#71717a] text-xs">
+              <div className="w-[260px] h-[260px] flex items-center justify-center text-muted text-xs">
                 Generating QR…
               </div>
             )}
@@ -341,13 +318,13 @@ export default function CheckoutPage() {
           {upiLink && (
             <a
               href={upiLink}
-              className="w-full py-3 rounded-xl bg-[#FFD600] text-[#09090b] font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-accent text-on-accent font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
               Open UPI app to pay ₹{totalPrice}
             </a>
           )}
 
-          <p className="text-xs text-[#71717a] font-body">
+          <p className="text-xs text-muted font-body">
             After payment, click below to confirm via WhatsApp
           </p>
 
@@ -362,8 +339,13 @@ export default function CheckoutPage() {
           </button>
 
           <button
-            onClick={() => { setShowQR(false); setOrderPlaced(true); }}
-            className="text-sm text-[#71717a] hover:text-[#e4e4e7] underline transition-colors"
+            onClick={() => {
+              setShowQR(false);
+              setOrderPlaced(true);
+              clearCart();
+              idempotencyKeyRef.current = generateId();
+            }}
+            className="text-sm text-muted hover:text-ink underline transition-colors"
           >
             Skip — I&apos;ll pay later at cart
           </button>
@@ -375,7 +357,7 @@ export default function CheckoutPage() {
   // Success screen
   if (orderPlaced) {
     return (
-      <main className="min-h-screen bg-[#09090b] flex items-center justify-center px-4">
+      <main className="min-h-screen bg-base flex items-center justify-center px-4">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -387,24 +369,24 @@ export default function CheckoutPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring", stiffness: 300, damping: 15 }}
-            className="w-20 h-20 rounded-full bg-[#22C55E]/20 flex items-center justify-center"
+            className="w-20 h-20 rounded-full bg-veg/20 flex items-center justify-center"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.4, type: "spring", stiffness: 300, damping: 15 }}
             >
-              <Check className="w-10 h-10 text-[#22C55E]" />
+              <Check className="w-10 h-10 text-veg" />
             </motion.div>
           </motion.div>
 
-          <h1 className="font-display text-4xl text-[#e4e4e7] tracking-wider">
+          <h1 className="font-display text-4xl text-ink tracking-wider">
             ORDER PLACED!
           </h1>
 
-          <div className="bg-[#111] border border-[#27272a] rounded-xl px-6 py-4">
-            <p className="text-sm text-[#71717a] mb-1">Order ID</p>
-            <p className="font-mono text-2xl text-[#FFD600]">#{orderId}</p>
+          <div className="bg-card border border-line rounded-xl px-6 py-4">
+            <p className="text-sm text-muted mb-1">Order ID</p>
+            <p className="font-mono text-2xl text-gold">#{orderId}</p>
           </div>
 
           {!savedToDb && (
@@ -412,7 +394,7 @@ export default function CheckoutPage() {
               <p className="text-sm text-[#FBBF24] font-semibold mb-1">
                 Please confirm your order
               </p>
-              <p className="text-xs text-[#a1a1aa] leading-relaxed">
+              <p className="text-xs text-soft leading-relaxed">
                 We sent it on WhatsApp, but couldn&apos;t confirm it on our
                 system. If you don&apos;t hear back in a few minutes, please
                 call us at{" "}
@@ -429,7 +411,7 @@ export default function CheckoutPage() {
 
           <Link
             href="/track"
-            className="px-8 py-3 rounded-full bg-[#FFD600] text-[#09090b] font-bold text-sm hover:brightness-110 active:scale-95 transition-all"
+            className="px-8 py-3 rounded-full bg-accent text-on-accent font-bold text-sm hover:brightness-110 active:scale-95 transition-all"
           >
             Track your order
           </Link>
@@ -438,14 +420,14 @@ export default function CheckoutPage() {
             href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-[#71717a] hover:text-[#e4e4e7] underline transition-colors"
+            className="text-sm text-muted hover:text-ink underline transition-colors"
           >
             WhatsApp didn&apos;t open? Click here
           </a>
 
           <Link
             href="/menu"
-            className="text-sm text-[#FFD600] hover:underline"
+            className="text-sm text-gold hover:underline"
           >
             Back to menu
           </Link>
@@ -455,7 +437,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#09090b] px-4 py-8">
+    <main className="min-h-screen bg-base px-4 py-8">
       <div className="max-w-2xl mx-auto">
         {/* Progress Indicator */}
         <div className="flex items-center justify-center gap-0 mb-12">
@@ -469,10 +451,10 @@ export default function CheckoutPage() {
                   <div
                     className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${
                       isCompleted
-                        ? "bg-[#22C55E] text-white"
+                        ? "bg-veg text-white"
                         : isActive
-                        ? "bg-[#FFD600] text-[#09090b]"
-                        : "bg-[#27272a] text-[#71717a]"
+                        ? "bg-accent text-on-accent"
+                        : "bg-raised text-muted"
                     }`}
                   >
                     {isCompleted ? <Check className="w-4 h-4" /> : stepNum}
@@ -480,10 +462,10 @@ export default function CheckoutPage() {
                   <span
                     className={`text-[11px] mt-1.5 whitespace-nowrap ${
                       isActive
-                        ? "text-[#FFD600]"
+                        ? "text-gold"
                         : isCompleted
-                        ? "text-[#22C55E]"
-                        : "text-[#71717a]"
+                        ? "text-veg"
+                        : "text-muted"
                     }`}
                   >
                     {label}
@@ -492,7 +474,7 @@ export default function CheckoutPage() {
                 {i < stepLabels.length - 1 && (
                   <div
                     className={`w-16 sm:w-24 h-[2px] mx-2 mb-5 ${
-                      step > stepNum ? "bg-[#22C55E]" : "bg-[#27272a]"
+                      step > stepNum ? "bg-veg" : "bg-raised"
                     }`}
                   />
                 )}
@@ -512,18 +494,18 @@ export default function CheckoutPage() {
               exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
             >
-              <h2 className="font-display text-3xl text-[#e4e4e7] tracking-wider mb-6">
+              <h2 className="font-display text-3xl text-ink tracking-wider mb-6">
                 YOUR CART
               </h2>
 
               {items.length === 0 ? (
                 <div className="text-center py-20">
-                  <p className="text-[#71717a] font-body text-lg mb-6">
+                  <p className="text-muted font-body text-lg mb-6">
                     Your cart is empty
                   </p>
                   <Link
                     href="/menu"
-                    className="px-8 py-3 rounded-full bg-[#FFD600] text-[#09090b] font-bold text-sm hover:brightness-110 active:scale-95 transition-all"
+                    className="px-8 py-3 rounded-full bg-accent text-on-accent font-bold text-sm hover:brightness-110 active:scale-95 transition-all"
                   >
                     Browse Menu
                   </Link>
@@ -534,23 +516,23 @@ export default function CheckoutPage() {
                     {items.map((item) => (
                       <div
                         key={item.id}
-                        className="flex items-center gap-4 bg-[#111] border border-[#27272a] rounded-xl px-4 py-3"
+                        className="flex items-center gap-4 bg-card border border-line rounded-xl px-4 py-3"
                       >
                         {/* Veg / Nonveg indicator */}
                         <span
                           className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                             item.type === "veg"
-                              ? "bg-[#22C55E]"
-                              : "bg-[#E53935]"
+                              ? "bg-veg"
+                              : "bg-nonveg"
                           }`}
                         />
 
                         {/* Name & unit price */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-[#e4e4e7] truncate">
+                          <p className="text-sm font-medium text-ink leading-snug line-clamp-2">
                             {item.name}
                           </p>
-                          <p className="text-xs text-[#71717a] font-mono">
+                          <p className="text-xs text-muted font-mono">
                             ₹{item.price} each
                           </p>
                         </div>
@@ -561,32 +543,32 @@ export default function CheckoutPage() {
                             onClick={() =>
                               updateQuantity(item.id, item.quantity - 1)
                             }
-                            className="w-7 h-7 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#3f3f46] transition-colors"
+                            className="w-7 h-7 flex items-center justify-center rounded bg-raised hover:bg-line transition-colors"
                           >
                             <Minus className="w-3.5 h-3.5" />
                           </button>
-                          <span className="text-sm font-mono w-6 text-center text-[#e4e4e7]">
+                          <span className="text-sm font-mono w-6 text-center text-ink">
                             {item.quantity}
                           </span>
                           <button
                             onClick={() =>
                               updateQuantity(item.id, item.quantity + 1)
                             }
-                            className="w-7 h-7 flex items-center justify-center rounded bg-[#27272a] hover:bg-[#3f3f46] transition-colors"
+                            className="w-7 h-7 flex items-center justify-center rounded bg-raised hover:bg-line transition-colors"
                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
 
                         {/* Subtotal */}
-                        <span className="font-display text-lg text-[#FFD600] w-16 text-right flex-shrink-0">
+                        <span className="font-display text-lg text-gold w-16 text-right flex-shrink-0">
                           ₹{item.price * item.quantity}
                         </span>
 
                         {/* Remove */}
                         <button
                           onClick={() => removeItem(item.id)}
-                          className="text-[#71717a] hover:text-[#E53935] transition-colors flex-shrink-0"
+                          className="text-muted hover:text-nonveg transition-colors flex-shrink-0"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -595,16 +577,16 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Total */}
-                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-[#27272a]">
-                    <span className="text-[#71717a] font-body">Total</span>
-                    <span className="font-display text-3xl text-[#FFD600]">
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-line">
+                    <span className="text-muted font-body">Total</span>
+                    <span className="font-display text-3xl text-gold">
                       ₹{totalPrice}
                     </span>
                   </div>
 
                   <button
                     onClick={() => setStep(2)}
-                    className="mt-8 w-full py-3.5 rounded-xl bg-[#FFD600] text-[#09090b] font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                    className="mt-8 w-full py-3.5 rounded-xl bg-accent text-on-accent font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                   >
                     Continue <ArrowRight className="w-4 h-4" />
                   </button>
@@ -622,15 +604,15 @@ export default function CheckoutPage() {
               exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
             >
-              <h2 className="font-display text-3xl text-[#e4e4e7] tracking-wider mb-6">
+              <h2 className="font-display text-3xl text-ink tracking-wider mb-6">
                 YOUR DETAILS
               </h2>
 
               <div className="flex flex-col gap-5">
                 {/* Name */}
                 <div>
-                  <label className="block text-sm text-[#a1a1aa] mb-1.5">
-                    Name <span className="text-[#E53935]">*</span>
+                  <label className="block text-sm text-soft mb-1.5">
+                    Name <span className="text-nonveg">*</span>
                   </label>
                   <input
                     type="text"
@@ -641,17 +623,17 @@ export default function CheckoutPage() {
                         setErrors((prev) => ({ ...prev, name: "" }));
                     }}
                     placeholder="Your name"
-                    className="w-full px-4 py-3 rounded-xl bg-[#18181b] border border-[#27272a] text-white placeholder-[#52525b] focus:border-[#FFD600] focus:outline-none transition-colors font-body"
+                    className="w-full px-4 py-3 rounded-xl bg-raised border border-line text-white placeholder-muted focus:border-gold focus:outline-none transition-colors font-body"
                   />
                   {errors.name && (
-                    <p className="text-[#E53935] text-xs mt-1">{errors.name}</p>
+                    <p className="text-nonveg text-xs mt-1">{errors.name}</p>
                   )}
                 </div>
 
                 {/* Phone */}
                 <div>
-                  <label className="block text-sm text-[#a1a1aa] mb-1.5">
-                    Phone Number <span className="text-[#E53935]">*</span>
+                  <label className="block text-sm text-soft mb-1.5">
+                    Phone Number <span className="text-nonveg">*</span>
                   </label>
                   <input
                     type="tel"
@@ -663,10 +645,10 @@ export default function CheckoutPage() {
                         setErrors((prev) => ({ ...prev, phone: "" }));
                     }}
                     placeholder="10-digit mobile number"
-                    className="w-full px-4 py-3 rounded-xl bg-[#18181b] border border-[#27272a] text-white placeholder-[#52525b] focus:border-[#FFD600] focus:outline-none transition-colors font-mono"
+                    className="w-full px-4 py-3 rounded-xl bg-raised border border-line text-white placeholder-muted focus:border-gold focus:outline-none transition-colors font-mono"
                   />
                   {errors.phone && (
-                    <p className="text-[#E53935] text-xs mt-1">
+                    <p className="text-nonveg text-xs mt-1">
                       {errors.phone}
                     </p>
                   )}
@@ -674,8 +656,8 @@ export default function CheckoutPage() {
 
                 {/* Pickup Time */}
                 <div>
-                  <label className="block text-sm text-[#a1a1aa] mb-1.5">
-                    Pickup Time <span className="text-[#E53935]">*</span>
+                  <label className="block text-sm text-soft mb-1.5">
+                    Pickup Time <span className="text-nonveg">*</span>
                   </label>
                   <select
                     value={pickupTime}
@@ -684,7 +666,7 @@ export default function CheckoutPage() {
                       if (errors.pickupTime)
                         setErrors((prev) => ({ ...prev, pickupTime: "" }));
                     }}
-                    className="w-full px-4 py-3 rounded-xl bg-[#18181b] border border-[#27272a] text-white focus:border-[#FFD600] focus:outline-none transition-colors font-body appearance-none"
+                    className="w-full px-4 py-3 rounded-xl bg-raised border border-line text-white focus:border-gold focus:outline-none transition-colors font-body appearance-none"
                   >
                     <option value="" disabled>
                       Select a time slot
@@ -705,7 +687,7 @@ export default function CheckoutPage() {
                     })}
                   </select>
                   {errors.pickupTime && (
-                    <p className="text-[#E53935] text-xs mt-1">
+                    <p className="text-nonveg text-xs mt-1">
                       {errors.pickupTime}
                     </p>
                   )}
@@ -713,7 +695,7 @@ export default function CheckoutPage() {
 
                 {/* Payment Method */}
                 <div>
-                  <label className="block text-sm text-[#a1a1aa] mb-1.5">
+                  <label className="block text-sm text-soft mb-1.5">
                     Payment Method
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -725,20 +707,20 @@ export default function CheckoutPage() {
                           onClick={() => setPaymentMethod(method)}
                           className={`p-4 rounded-xl border text-left text-sm font-body transition-all ${
                             paymentMethod === method
-                              ? "border-[#FFD600] bg-[#FFD600]/5 text-[#FFD600]"
-                              : "border-[#27272a] bg-[#18181b] text-[#a1a1aa] hover:border-[#3f3f46]"
+                              ? "border-gold bg-accent/5 text-gold"
+                              : "border-line bg-raised text-soft hover:border-line-strong"
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             <div
                               className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                                 paymentMethod === method
-                                  ? "border-[#FFD600]"
-                                  : "border-[#52525b]"
+                                  ? "border-gold"
+                                  : "border-line-strong"
                               }`}
                             >
                               {paymentMethod === method && (
-                                <div className="w-2 h-2 rounded-full bg-[#FFD600]" />
+                                <div className="w-2 h-2 rounded-full bg-accent" />
                               )}
                             </div>
                             {method}
@@ -754,7 +736,7 @@ export default function CheckoutPage() {
               <div className="flex gap-3 mt-8">
                 <button
                   onClick={() => setStep(1)}
-                  className="flex-1 py-3.5 rounded-xl border border-[#27272a] text-[#a1a1aa] font-bold text-sm hover:bg-[#18181b] transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-xl border border-line text-soft font-bold text-sm hover:bg-raised transition-all flex items-center justify-center gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
@@ -762,7 +744,7 @@ export default function CheckoutPage() {
                   onClick={() => {
                     if (validateStep2()) setStep(3);
                   }}
-                  className="flex-1 py-3.5 rounded-xl bg-[#FFD600] text-[#09090b] font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-xl bg-accent text-on-accent font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
                 >
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
@@ -779,11 +761,11 @@ export default function CheckoutPage() {
               exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
             >
-              <h2 className="font-display text-3xl text-[#e4e4e7] tracking-wider mb-6">
+              <h2 className="font-display text-3xl text-ink tracking-wider mb-6">
                 CONFIRM ORDER
               </h2>
 
-              <div className="bg-[#111] border border-[#27272a] rounded-2xl p-5 flex flex-col gap-4">
+              <div className="bg-card border border-line rounded-2xl p-5 flex flex-col gap-4">
                 {/* Items */}
                 <div className="flex flex-col gap-2">
                   {items.map((item) => (
@@ -791,46 +773,46 @@ export default function CheckoutPage() {
                       key={item.id}
                       className="flex items-center justify-between text-sm"
                     >
-                      <span className="text-[#e4e4e7]">
+                      <span className="text-ink">
                         {item.name}{" "}
-                        <span className="text-[#71717a]">x{item.quantity}</span>
+                        <span className="text-muted">x{item.quantity}</span>
                       </span>
-                      <span className="font-mono text-[#a1a1aa]">
+                      <span className="font-mono text-soft">
                         ₹{item.price * item.quantity}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className="h-px bg-[#27272a]" />
+                <div className="h-px bg-raised" />
 
                 {/* Total */}
                 <div className="flex items-center justify-between">
-                  <span className="text-[#71717a]">Total</span>
-                  <span className="font-display text-2xl text-[#FFD600]">
+                  <span className="text-muted">Total</span>
+                  <span className="font-display text-2xl text-gold">
                     ₹{totalPrice}
                   </span>
                 </div>
 
-                <div className="h-px bg-[#27272a]" />
+                <div className="h-px bg-raised" />
 
                 {/* Customer details */}
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-[#71717a]">Name</p>
-                    <p className="text-[#e4e4e7]">{name}</p>
+                    <p className="text-muted">Name</p>
+                    <p className="text-ink">{name}</p>
                   </div>
                   <div>
-                    <p className="text-[#71717a]">Phone</p>
-                    <p className="text-[#e4e4e7] font-mono">{phone}</p>
+                    <p className="text-muted">Phone</p>
+                    <p className="text-ink font-mono">{phone}</p>
                   </div>
                   <div>
-                    <p className="text-[#71717a]">Pickup</p>
-                    <p className="text-[#e4e4e7]">{pickupTime}</p>
+                    <p className="text-muted">Pickup</p>
+                    <p className="text-ink">{pickupTime}</p>
                   </div>
                   <div>
-                    <p className="text-[#71717a]">Payment</p>
-                    <p className="text-[#e4e4e7]">{paymentMethod}</p>
+                    <p className="text-muted">Payment</p>
+                    <p className="text-ink">{paymentMethod}</p>
                   </div>
                 </div>
               </div>
@@ -839,14 +821,14 @@ export default function CheckoutPage() {
               <div className="flex gap-3 mt-8">
                 <button
                   onClick={() => setStep(2)}
-                  className="flex-1 py-3.5 rounded-xl border border-[#27272a] text-[#a1a1aa] font-bold text-sm hover:bg-[#18181b] transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-xl border border-line text-soft font-bold text-sm hover:bg-raised transition-all flex items-center justify-center gap-2"
                 >
                   <ArrowLeft className="w-4 h-4" /> Back
                 </button>
                 <button
                   onClick={handlePlaceOrder}
                   disabled={placing}
-                  className="flex-[2] py-3.5 rounded-xl bg-[#FFD600] text-[#09090b] font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-[2] py-3.5 rounded-xl bg-accent text-on-accent font-bold text-sm hover:brightness-110 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {placing ? (
                     <>
@@ -862,7 +844,7 @@ export default function CheckoutPage() {
               </div>
 
               {submitError && (
-                <p className="text-[#E53935] text-sm text-center mt-3" role="alert">
+                <p className="text-nonveg text-sm text-center mt-3" role="alert">
                   {submitError}
                 </p>
               )}

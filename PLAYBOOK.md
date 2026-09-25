@@ -7,6 +7,16 @@
 > New admin password was generated on migration (see `.supabase-db-pass.txt`, gitignored) —
 > change it in Supabase Auth and store in your password manager. Old Tokyo project pending decommission.
 
+> **2026-09-25 redesign (branch `redesign/brand-v2`):** new brand UI (light/dark), menu v2, /partner page.
+> **Deploy checklist for this release:**
+> 1. `npm run build` and upload `out/` to Hostinger (same as always).
+> 2. **Right after upload**, run `supabase/migrations/002_privacy_and_partner.sql` in the Supabase SQL Editor.
+>    It removes the public read on `orders` (customer names/phones were readable with the anon key),
+>    adds `track_orders()` / `slot_counts()`, and creates `partner_enquiries`.
+>    Don't run it *before* uploading — the old site still reads `orders` directly.
+> 3. Test /track with a real phone number and place one test order.
+> 4. Partner enquiries land in Table Editor → `partner_enquiries` and on WhatsApp.
+
 ---
 
 ## 1. What's running

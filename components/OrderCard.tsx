@@ -28,11 +28,11 @@ const statusConfig: Record<
   string,
   { label: string; bg: string; text: string }
 > = {
-  new: { label: "NEW", bg: "bg-[#FFD600]/15", text: "text-[#FFD600]" },
+  new: { label: "NEW", bg: "bg-accent/15", text: "text-gold" },
   confirmed: { label: "CONFIRMED", bg: "bg-[#3B82F6]/15", text: "text-[#3B82F6]" },
   preparing: { label: "PREPARING", bg: "bg-[#8B5CF6]/15", text: "text-[#8B5CF6]" },
-  ready: { label: "READY", bg: "bg-[#22C55E]/15", text: "text-[#22C55E]" },
-  done: { label: "DONE", bg: "bg-[#71717a]/15", text: "text-[#71717a]" },
+  ready: { label: "READY", bg: "bg-veg/15", text: "text-veg" },
+  done: { label: "DONE", bg: "bg-muted/15", text: "text-muted" },
 };
 
 const actionConfig: Record<
@@ -42,13 +42,13 @@ const actionConfig: Record<
   new: {
     label: "ACCEPT",
     nextStatus: "confirmed",
-    bg: "bg-[#22C55E]",
-    hover: "hover:bg-[#16a34a]",
+    bg: "bg-veg",
+    hover: "hover:bg-veg",
   },
   confirmed: {
     label: "PREPARING",
     nextStatus: "preparing",
-    bg: "bg-[#FFD600]",
+    bg: "bg-accent",
     hover: "hover:brightness-110",
   },
   preparing: {
@@ -60,8 +60,8 @@ const actionConfig: Record<
   ready: {
     label: "DONE",
     nextStatus: "done",
-    bg: "bg-[#71717a]",
-    hover: "hover:bg-[#52525b]",
+    bg: "bg-muted",
+    hover: "hover:bg-line",
   },
 };
 
@@ -82,14 +82,14 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
   })();
 
   return (
-    <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 space-y-3">
+    <div className="rounded-xl bg-card border border-line p-4 space-y-3">
       {/* Header row */}
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="font-display text-lg text-[#FFD600] tracking-wider leading-none">
+          <p className="font-display text-lg text-gold tracking-wider leading-none">
             #{order.orderId}
           </p>
-          <p className="text-sm text-[#e4e4e7] mt-1">{order.customerName}</p>
+          <p className="text-sm text-ink mt-1">{order.customerName}</p>
         </div>
         <span
           className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${status.bg} ${status.text}`}
@@ -103,7 +103,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
         href={whatsappLink}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 text-xs text-[#22C55E] hover:underline"
+        className="inline-flex items-center gap-1.5 text-xs text-veg hover:underline"
       >
         <svg
           viewBox="0 0 24 24"
@@ -121,12 +121,12 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
         {order.items.map((item, idx) => (
           <li
             key={idx}
-            className="flex items-center justify-between text-xs text-[#e4e4e7]"
+            className="flex items-center justify-between text-xs text-ink"
           >
             <span>
               {item.quantity}x {item.name}
             </span>
-            <span className="font-mono text-[#71717a]">
+            <span className="font-mono text-muted">
               ₹{item.price}
             </span>
           </li>
@@ -134,7 +134,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
       </ul>
 
       {/* Meta row */}
-      <div className="flex items-center justify-between text-[11px] text-[#71717a] border-t border-[#27272a] pt-2">
+      <div className="flex items-center justify-between text-[11px] text-muted border-t border-line pt-2">
         <span>Pickup: {order.pickupTime}</span>
         <span>{order.paymentMethod}</span>
         <span>{formattedTime}</span>
@@ -142,8 +142,8 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
 
       {/* Total */}
       <div className="flex items-center justify-between">
-        <span className="text-xs text-[#71717a]">Total</span>
-        <span className="font-display text-xl text-[#FFD600]">
+        <span className="text-xs text-muted">Total</span>
+        <span className="font-display text-xl text-gold">
           ₹{order.total}
         </span>
       </div>
@@ -152,7 +152,7 @@ export default function OrderCard({ order, onStatusChange }: OrderCardProps) {
       {action && (
         <button
           onClick={() => onStatusChange(order.orderId, action.nextStatus)}
-          className={`w-full py-2.5 rounded-xl font-bold text-sm text-[#09090b] active:scale-[0.97] transition-all ${action.bg} ${action.hover}`}
+          className={`w-full py-2.5 rounded-xl font-bold text-sm text-on-accent active:scale-[0.97] transition-all ${action.bg} ${action.hover}`}
         >
           {action.label}
         </button>

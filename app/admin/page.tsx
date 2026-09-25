@@ -453,17 +453,17 @@ export default function AdminPage() {
   // Login Screen
   if (!isLoggedIn) {
     return (
-      <main className="min-h-screen bg-[#09090b] flex items-center justify-center px-4">
+      <main className="min-h-screen bg-base flex items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-sm space-y-6"
         >
           <div className="text-center">
-            <h1 className="font-display text-4xl text-[#FFD600] tracking-wider">
+            <h1 className="font-display text-4xl text-gold tracking-wider">
               ADMIN
             </h1>
-            <p className="text-[#71717a] font-body mt-1 text-sm">
+            <p className="text-muted font-body mt-1 text-sm">
               RollRicks Dashboard
             </p>
           </div>
@@ -476,7 +476,7 @@ export default function AdminPage() {
               onChange={(e) => setAdminId(e.target.value)}
               required
               autoComplete="email"
-              className="w-full px-4 py-3.5 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-[#e4e4e7] font-body placeholder:text-[#52525b] transition-colors"
+              className="w-full px-4 py-3.5 rounded-xl bg-raised border border-line focus:border-gold focus:outline-none text-ink font-body placeholder:text-muted transition-colors"
             />
             <input
               type="password"
@@ -484,17 +484,17 @@ export default function AdminPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3.5 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-[#e4e4e7] font-body placeholder:text-[#52525b] transition-colors"
+              className="w-full px-4 py-3.5 rounded-xl bg-raised border border-line focus:border-gold focus:outline-none text-ink font-body placeholder:text-muted transition-colors"
             />
 
             {loginError && (
-              <p className="text-[#E53935] text-sm font-body">{loginError}</p>
+              <p className="text-nonveg text-sm font-body">{loginError}</p>
             )}
 
             <button
               type="submit"
               disabled={loggingIn}
-              className="w-full py-3.5 rounded-xl bg-[#FFD600] text-[#09090b] font-bold text-lg font-body active:scale-[0.97] transition-all disabled:opacity-50 hover:brightness-110"
+              className="w-full py-3.5 rounded-xl bg-accent text-on-accent font-bold text-lg font-body active:scale-[0.97] transition-all disabled:opacity-50 hover:brightness-110"
             >
               {loggingIn ? "Logging in..." : "Login"}
             </button>
@@ -506,11 +506,11 @@ export default function AdminPage() {
 
   // Dashboard
   return (
-    <main className="min-h-screen bg-[#09090b] text-[#e4e4e7]">
+    <main className="min-h-screen bg-base text-ink">
       {/* Top Bar */}
-      <header className="sticky top-0 z-50 bg-[#09090b]/90 backdrop-blur-md border-b border-[#27272a] px-4 py-3">
+      <header className="sticky top-0 z-50 bg-base/90 backdrop-blur-md border-b border-line px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <h1 className="font-display text-xl text-[#FFD600] tracking-wider">
+          <h1 className="font-display text-xl text-gold tracking-wider">
             ROLLRICKS ADMIN
           </h1>
           <button
@@ -518,7 +518,7 @@ export default function AdminPage() {
               supabase.auth.signOut().catch(() => {});
               setIsLoggedIn(false);
             }}
-            className="px-3 py-1.5 rounded-lg border border-[#27272a] text-xs font-body text-[#a1a1aa] hover:border-[#E53935] hover:text-[#E53935] transition-colors"
+            className="px-3 py-1.5 rounded-lg border border-line text-xs font-body text-soft hover:border-nonveg hover:text-nonveg transition-colors"
           >
             Logout
           </button>
@@ -526,7 +526,7 @@ export default function AdminPage() {
       </header>
 
       {/* Section Tabs */}
-      <div className="sticky top-[52px] z-40 bg-[#09090b]/95 backdrop-blur border-b border-[#27272a]">
+      <div className="sticky top-[52px] z-40 bg-base/95 backdrop-blur border-b border-line">
         <div className="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto py-2">
           {(["orders", "analytics", "menu"] as AdminSection[]).map((section) => (
             <button
@@ -534,8 +534,8 @@ export default function AdminPage() {
               onClick={() => setActiveSection(section)}
               className={`px-4 py-2 rounded-lg text-sm font-bold capitalize whitespace-nowrap transition-all ${
                 activeSection === section
-                  ? "bg-[#FFD600] text-[#09090b]"
-                  : "text-[#71717a] hover:text-[#a1a1aa]"
+                  ? "bg-accent text-on-accent"
+                  : "text-muted hover:text-soft"
               }`}
             >
               {section === "orders" ? "Live Orders" : section === "analytics" ? "Analytics" : "Menu Control"}
@@ -551,7 +551,7 @@ export default function AdminPage() {
             initial={{ y: -60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -60, opacity: 0 }}
-            className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-6 py-3 rounded-xl bg-[#22C55E] text-white font-bold text-sm shadow-lg shadow-[#22C55E]/30"
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-6 py-3 rounded-xl bg-veg text-white font-bold text-sm shadow-lg shadow-veg/30"
           >
             New Order Received!
           </motion.div>
@@ -565,7 +565,7 @@ export default function AdminPage() {
             initial={{ y: -60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -60, opacity: 0 }}
-            className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-xl bg-[#E53935] text-white font-bold text-xs sm:text-sm shadow-lg shadow-[#E53935]/30 max-w-[calc(100vw-2rem)] text-center"
+            className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] px-5 py-3 rounded-xl bg-nonveg text-white font-bold text-xs sm:text-sm shadow-lg shadow-nonveg/30 max-w-[calc(100vw-2rem)] text-center"
           >
             {statusError}
           </motion.div>
@@ -574,33 +574,33 @@ export default function AdminPage() {
 
       {loadError ? (
         <div className="max-w-2xl mx-auto px-4 py-12 space-y-4">
-          <div className="rounded-xl bg-[#E53935]/10 border border-[#E53935]/30 p-6 text-center">
-            <p className="text-[#E53935] font-body font-medium text-lg">
+          <div className="rounded-xl bg-nonveg/10 border border-nonveg/30 p-6 text-center">
+            <p className="text-nonveg font-body font-medium text-lg">
               {loadError}
             </p>
           </div>
           {loadErrorDetail && (
-            <div className="rounded-xl bg-[#111] border border-[#27272a] p-5 font-mono text-xs text-[#a1a1aa] space-y-2">
-              <p className="text-[#FFD600] font-bold uppercase tracking-wider text-[10px] font-body">
+            <div className="rounded-xl bg-card border border-line p-5 font-mono text-xs text-soft space-y-2">
+              <p className="text-gold font-bold uppercase tracking-wider text-[10px] font-body">
                 Debug info — share with support
               </p>
               <div className="break-all">
-                <span className="text-[#71717a]">code:</span>{" "}
-                <span className="text-[#e4e4e7]">{loadErrorDetail.code || "—"}</span>
+                <span className="text-muted">code:</span>{" "}
+                <span className="text-ink">{loadErrorDetail.code || "—"}</span>
               </div>
               <div className="break-all">
-                <span className="text-[#71717a]">message:</span>{" "}
-                <span className="text-[#e4e4e7]">{loadErrorDetail.message || "—"}</span>
+                <span className="text-muted">message:</span>{" "}
+                <span className="text-ink">{loadErrorDetail.message || "—"}</span>
               </div>
               <div className="break-all">
-                <span className="text-[#71717a]">auth:</span>{" "}
-                <span className="text-[#e4e4e7]">{loadErrorDetail.authState || "—"}</span>
+                <span className="text-muted">auth:</span>{" "}
+                <span className="text-ink">{loadErrorDetail.authState || "—"}</span>
               </div>
               <div className="break-all">
-                <span className="text-[#71717a]">project:</span>{" "}
-                <span className="text-[#e4e4e7]">{loadErrorDetail.projectId || "(env var missing!)"}</span>
+                <span className="text-muted">project:</span>{" "}
+                <span className="text-ink">{loadErrorDetail.projectId || "(env var missing!)"}</span>
               </div>
-              <p className="text-[#71717a] pt-2 font-body">
+              <p className="text-muted pt-2 font-body">
                 {!loadErrorDetail.projectId
                   ? "→ NEXT_PUBLIC_SUPABASE_URL is not set. Add Supabase env vars in .env.local (and in Vercel for prod), then restart the dev server."
                   : /permission|policy/i.test(loadErrorDetail.message || "")
@@ -620,35 +620,35 @@ export default function AdminPage() {
             animate={{ opacity: 1, y: 0 }}
             className="grid grid-cols-2 sm:grid-cols-4 gap-3"
           >
-            <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
-              <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">
+            <div className="rounded-xl bg-card border border-line p-4 text-center">
+              <p className="text-muted text-[10px] font-body uppercase tracking-wider">
                 Today&apos;s Orders
               </p>
-              <p className="font-display text-2xl text-[#e4e4e7] mt-1">
+              <p className="font-display text-2xl text-ink mt-1">
                 {todayStats.count}
               </p>
             </div>
-            <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
-              <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">
+            <div className="rounded-xl bg-card border border-line p-4 text-center">
+              <p className="text-muted text-[10px] font-body uppercase tracking-wider">
                 Revenue
               </p>
-              <p className="font-display text-2xl text-[#FFD600] mt-1">
+              <p className="font-display text-2xl text-gold mt-1">
                 ₹{todayStats.revenue.toLocaleString("en-IN")}
               </p>
             </div>
-            <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
-              <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">
+            <div className="rounded-xl bg-card border border-line p-4 text-center">
+              <p className="text-muted text-[10px] font-body uppercase tracking-wider">
                 Pending
               </p>
-              <p className="font-display text-2xl text-[#E53935] mt-1">
+              <p className="font-display text-2xl text-nonveg mt-1">
                 {todayStats.pending}
               </p>
             </div>
-            <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
-              <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">
+            <div className="rounded-xl bg-card border border-line p-4 text-center">
+              <p className="text-muted text-[10px] font-body uppercase tracking-wider">
                 Avg Order
               </p>
-              <p className="font-display text-2xl text-[#22C55E] mt-1">
+              <p className="font-display text-2xl text-veg mt-1">
                 ₹{todayStats.avgOrderValue}
               </p>
             </div>
@@ -668,13 +668,13 @@ export default function AdminPage() {
                       onClick={() => setActiveTab(tab)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-body font-medium whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                         activeTab === tab
-                          ? "bg-[#FFD600] text-[#09090b]"
-                          : "bg-[#18181b] text-[#a1a1aa] border border-[#27272a] hover:border-[#FFD600]/50"
+                          ? "bg-accent text-on-accent"
+                          : "bg-raised text-soft border border-line hover:border-gold/50"
                       }`}
                     >
                       {tab}
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                        activeTab === tab ? "bg-[#09090b]/20" : "bg-[#27272a]"
+                        activeTab === tab ? "bg-base/20" : "bg-raised"
                       }`}>
                         {count}
                       </span>
@@ -692,8 +692,8 @@ export default function AdminPage() {
                   transition={{ duration: 0.25 }}
                 >
                   {filteredOrders.length === 0 ? (
-                    <div className="rounded-xl bg-[#111] border border-[#27272a] p-12 text-center">
-                      <p className="text-[#71717a] font-body">
+                    <div className="rounded-xl bg-card border border-line p-12 text-center">
+                      <p className="text-muted font-body">
                         {orders.length === 0
                           ? "No orders yet. Share your menu link!"
                           : `No ${activeTab.toLowerCase()} orders.`}
@@ -726,43 +726,43 @@ export default function AdminPage() {
             <section className="space-y-6">
               {/* All-time summary */}
               <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
-                  <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">Total Orders</p>
-                  <p className="font-display text-2xl text-[#e4e4e7] mt-1">{analytics.totalOrders}</p>
+                <div className="rounded-xl bg-card border border-line p-4 text-center">
+                  <p className="text-muted text-[10px] font-body uppercase tracking-wider">Total Orders</p>
+                  <p className="font-display text-2xl text-ink mt-1">{analytics.totalOrders}</p>
                 </div>
-                <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
-                  <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">Total Revenue</p>
-                  <p className="font-display text-2xl text-[#FFD600] mt-1">₹{analytics.totalRevenue.toLocaleString("en-IN")}</p>
+                <div className="rounded-xl bg-card border border-line p-4 text-center">
+                  <p className="text-muted text-[10px] font-body uppercase tracking-wider">Total Revenue</p>
+                  <p className="font-display text-2xl text-gold mt-1">₹{analytics.totalRevenue.toLocaleString("en-IN")}</p>
                 </div>
-                <div className="rounded-xl bg-[#111] border border-[#27272a] p-4 text-center">
-                  <p className="text-[#71717a] text-[10px] font-body uppercase tracking-wider">Avg Order</p>
-                  <p className="font-display text-2xl text-[#22C55E] mt-1">₹{analytics.avgOrderValue}</p>
+                <div className="rounded-xl bg-card border border-line p-4 text-center">
+                  <p className="text-muted text-[10px] font-body uppercase tracking-wider">Avg Order</p>
+                  <p className="font-display text-2xl text-veg mt-1">₹{analytics.avgOrderValue}</p>
                 </div>
               </div>
 
               {/* Top Selling Items */}
-              <div className="rounded-xl bg-[#111] border border-[#27272a] p-5">
-                <h3 className="font-display text-lg text-[#FFD600] tracking-wider mb-4">
+              <div className="rounded-xl bg-card border border-line p-5">
+                <h3 className="font-display text-lg text-gold tracking-wider mb-4">
                   TOP SELLING ITEMS
                 </h3>
                 {analytics.topSellers.length === 0 ? (
-                  <p className="text-[#71717a] text-sm">No order data yet</p>
+                  <p className="text-muted text-sm">No order data yet</p>
                 ) : (
                   <div className="flex flex-col gap-3">
                     {analytics.topSellers.map((item, i) => (
                       <div key={item.name} className="flex items-center gap-3">
-                        <span className="text-xs text-[#71717a] w-5 text-right font-mono">
+                        <span className="text-xs text-muted w-5 text-right font-mono">
                           #{i + 1}
                         </span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-sm text-[#e4e4e7] truncate">{item.name}</span>
-                            <span className="text-xs text-[#71717a] font-mono ml-2 flex-shrink-0">
+                            <span className="text-sm text-ink truncate">{item.name}</span>
+                            <span className="text-xs text-muted font-mono ml-2 flex-shrink-0">
                               {item.count} sold &middot; ₹{item.revenue.toLocaleString("en-IN")}
                             </span>
                           </div>
                           {/* Bar chart */}
-                          <div className="w-full h-2 bg-[#27272a] rounded-full overflow-hidden">
+                          <div className="w-full h-2 bg-raised rounded-full overflow-hidden">
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${(item.count / analytics.maxCount) * 100}%` }}
@@ -783,8 +783,8 @@ export default function AdminPage() {
               {/* Order Status & Payment Breakdown */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Order Status */}
-                <div className="rounded-xl bg-[#111] border border-[#27272a] p-5">
-                  <h3 className="font-display text-lg text-[#FFD600] tracking-wider mb-4">
+                <div className="rounded-xl bg-card border border-line p-5">
+                  <h3 className="font-display text-lg text-gold tracking-wider mb-4">
                     ORDER STATUS
                   </h3>
                   <div className="flex flex-col gap-2.5">
@@ -795,11 +795,11 @@ export default function AdminPage() {
                             className="w-2.5 h-2.5 rounded-full"
                             style={{ backgroundColor: statusColor[status] || "#71717a" }}
                           />
-                          <span className="text-sm capitalize text-[#e4e4e7]">{status}</span>
+                          <span className="text-sm capitalize text-ink">{status}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm text-[#a1a1aa]">{count}</span>
-                          <span className="text-xs text-[#71717a]">
+                          <span className="font-mono text-sm text-soft">{count}</span>
+                          <span className="text-xs text-muted">
                             ({analytics.totalOrders > 0 ? Math.round((count / analytics.totalOrders) * 100) : 0}%)
                           </span>
                         </div>
@@ -809,36 +809,36 @@ export default function AdminPage() {
                 </div>
 
                 {/* Payment Methods */}
-                <div className="rounded-xl bg-[#111] border border-[#27272a] p-5">
-                  <h3 className="font-display text-lg text-[#FFD600] tracking-wider mb-4">
+                <div className="rounded-xl bg-card border border-line p-5">
+                  <h3 className="font-display text-lg text-gold tracking-wider mb-4">
                     PAYMENT METHODS
                   </h3>
                   <div className="flex flex-col gap-2.5">
                     {Object.entries(analytics.paymentBreakdown).map(([method, count]) => (
                       <div key={method} className="flex items-center justify-between">
-                        <span className="text-sm text-[#e4e4e7] truncate mr-2">{method}</span>
+                        <span className="text-sm text-ink truncate mr-2">{method}</span>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm text-[#a1a1aa]">{count}</span>
-                          <span className="text-xs text-[#71717a]">
+                          <span className="font-mono text-sm text-soft">{count}</span>
+                          <span className="text-xs text-muted">
                             ({analytics.totalOrders > 0 ? Math.round((count / analytics.totalOrders) * 100) : 0}%)
                           </span>
                         </div>
                       </div>
                     ))}
                     {Object.keys(analytics.paymentBreakdown).length === 0 && (
-                      <p className="text-[#71717a] text-sm">No data yet</p>
+                      <p className="text-muted text-sm">No data yet</p>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Today's Hourly Orders */}
-              <div className="rounded-xl bg-[#111] border border-[#27272a] p-5">
-                <h3 className="font-display text-lg text-[#FFD600] tracking-wider mb-4">
+              <div className="rounded-xl bg-card border border-line p-5">
+                <h3 className="font-display text-lg text-gold tracking-wider mb-4">
                   TODAY&apos;S ORDERS BY HOUR
                 </h3>
                 {Object.keys(analytics.hourly).length === 0 ? (
-                  <p className="text-[#71717a] text-sm">No orders today yet</p>
+                  <p className="text-muted text-sm">No orders today yet</p>
                 ) : (
                   <div className="flex items-end gap-1.5 h-32">
                     {Array.from({ length: 24 }, (_, h) => {
@@ -849,7 +849,7 @@ export default function AdminPage() {
                         <div key={h} className="flex-1 flex flex-col items-center gap-1" title={`${h}:00 — ${count} orders`}>
                           <div className="w-full flex flex-col items-center justify-end h-24">
                             {count > 0 && (
-                              <span className="text-[9px] font-mono text-[#a1a1aa] mb-0.5">{count}</span>
+                              <span className="text-[9px] font-mono text-soft mb-0.5">{count}</span>
                             )}
                             <div
                               className="w-full rounded-t transition-all"
@@ -860,7 +860,7 @@ export default function AdminPage() {
                               }}
                             />
                           </div>
-                          <span className="text-[8px] text-[#71717a] font-mono">
+                          <span className="text-[8px] text-muted font-mono">
                             {h % 3 === 0 ? `${h}` : ""}
                           </span>
                         </div>
@@ -875,7 +875,7 @@ export default function AdminPage() {
           {/* MENU CONTROL SECTION */}
           {activeSection === "menu" && (
             <section className="space-y-4 pb-12">
-              <div className="rounded-xl bg-[#111] border border-[#27272a] divide-y divide-[#27272a]">
+              <div className="rounded-xl bg-card border border-line divide-y divide-line">
                 {allMenuItems.map((item) => (
                   <div
                     key={item.id}
@@ -884,14 +884,14 @@ export default function AdminPage() {
                     <div className="flex items-center gap-3 min-w-0">
                       <span
                         className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                          item.type === "veg" ? "bg-[#22C55E]" : "bg-[#E53935]"
+                          item.type === "veg" ? "bg-veg" : "bg-nonveg"
                         }`}
                       />
                       <div className="min-w-0">
-                        <p className="text-sm font-body text-[#e4e4e7] truncate">
+                        <p className="text-sm font-body text-ink truncate">
                           {item.name}
                         </p>
-                        <p className="text-xs font-mono text-[#71717a]">
+                        <p className="text-xs font-mono text-muted">
                           ₹{item.price}
                         </p>
                       </div>
@@ -901,8 +901,8 @@ export default function AdminPage() {
                       onClick={() => handleMenuToggle(item.id)}
                       className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-colors duration-200 ${
                         menuAvailability[item.id] !== false
-                          ? "bg-[#22C55E]"
-                          : "bg-[#27272a]"
+                          ? "bg-veg"
+                          : "bg-raised"
                       }`}
                     >
                       <span

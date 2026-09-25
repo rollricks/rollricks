@@ -7,27 +7,18 @@ import { generateEventWhatsApp, WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import { CheckCircle2, Cake, Users, Star, Sparkles, Camera } from "lucide-react";
 
 // ─── Image library ──────────────────────────────────────────
+// RollRicks' own photography — cart, crowd and food shots.
 const IMG = {
-  birthdayKids:
-    "https://images.unsplash.com/photo-1530103862676-de8c9debad1d?auto=format&fit=crop&w=900&q=75",
-  birthdayCake:
-    "https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?auto=format&fit=crop&w=900&q=75",
-  birthdayMilestone:
-    "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=900&q=75",
-  wedding:
-    "https://images.unsplash.com/photo-1519671482749-fd09be7ccebf?auto=format&fit=crop&w=900&q=75",
-  collegeFest:
-    "https://images.unsplash.com/photo-1493612276216-ee3925520721?auto=format&fit=crop&w=900&q=75",
-  office:
-    "https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=900&q=75",
-  houseParty:
-    "https://images.unsplash.com/photo-1530023367847-a683933f4172?auto=format&fit=crop&w=900&q=75",
-  engagement:
-    "https://images.unsplash.com/photo-1543007630-9710e4a00a20?auto=format&fit=crop&w=900&q=75",
-  hero:
-    "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1600&q=75",
-  cart:
-    "https://images.unsplash.com/photo-1481833761820-0509d3217039?auto=format&fit=crop&w=900&q=75",
+  birthdayKids: "/images/food/combo-rolls-mojitos.webp",
+  birthdayCake: "/images/food/combo-chicken-feast.webp",
+  birthdayMilestone: "/images/food/tikka-fire.webp",
+  wedding: "/menu/malai-chicken-tikka.webp",
+  collegeFest: "/images/story/happier-people.webp",
+  office: "/images/food/combo-roll-coffee.webp",
+  houseParty: "/menu/chilli-chicken.webp",
+  engagement: "/menu/paneer-tikka-skewers.webp",
+  hero: "/images/cart/hero-night.webp",
+  cart: "/images/story/first-cart.webp",
 };
 
 // ─── Birthday concepts ───────────────────────────────────────
@@ -188,10 +179,10 @@ const addOns = [
 
 // ─── Quick "why us" stats ───────────────────────────────────
 const whyUs = [
-  { stat: "100+", label: "Events catered" },
+  { stat: "₹249", label: "Per plate from" },
   { stat: "30 min", label: "Setup time" },
   { stat: "0", label: "Hidden charges" },
-  { stat: "5★", label: "Avg rating" },
+  { stat: "Live", label: "Roll counter" },
 ];
 
 const fadeUp = {
@@ -277,7 +268,7 @@ export default function EventsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#09090b] text-[#e4e4e7]">
+    <main className="min-h-screen bg-base text-ink">
       {/* ─── HERO ─────────────────────────────────────────── */}
       <section className="relative px-4 pt-16 pb-12 text-center overflow-hidden">
         <div className="absolute inset-0 -z-10">
@@ -287,17 +278,17 @@ export default function EventsPage() {
             alt=""
             className="w-full h-full object-cover opacity-20"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#09090b]/70 via-[#09090b]/85 to-[#09090b]" />
+          <div className="absolute inset-0 bg-gradient-to-b from-base/70 via-base/85 to-base" />
         </div>
 
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#FFD600]/10 border border-[#FFD600]/30 mb-5"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent/10 border border-gold/30 mb-5"
         >
-          <span className="w-2 h-2 rounded-full bg-[#FFD600] animate-pulse" />
-          <span className="text-xs font-bold text-[#FFD600] uppercase tracking-wider">
+          <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+          <span className="text-xs font-bold text-gold uppercase tracking-wider">
             Now booking events in Jabalpur
           </span>
         </motion.div>
@@ -306,7 +297,7 @@ export default function EventsPage() {
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="font-display text-5xl md:text-7xl text-[#FFD600] tracking-wider leading-tight"
+          className="font-display text-5xl md:text-7xl text-gold tracking-wider leading-tight"
         >
           YOUR PARTY.
           <br />
@@ -316,7 +307,7 @@ export default function EventsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="text-[#a1a1aa] font-body mt-5 max-w-xl mx-auto text-lg"
+          className="text-soft font-body mt-5 max-w-xl mx-auto text-lg"
         >
           Birthdays, weddings, college fests — we bring the live roll counter
           experience to your venue. Hot, fresh, and unforgettable.
@@ -327,7 +318,7 @@ export default function EventsPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
           href="#enquiry"
-          className="inline-flex items-center gap-2 mt-7 px-7 py-3 rounded-full bg-[#FFD600] text-[#09090b] font-bold text-sm hover:brightness-110 active:scale-95 transition-all"
+          className="inline-flex items-center gap-2 mt-7 px-7 py-3 rounded-full bg-accent text-on-accent font-bold text-sm hover:brightness-110 active:scale-95 transition-all"
         >
           Book your event →
         </motion.a>
@@ -347,10 +338,10 @@ export default function EventsPage() {
               transition={{ duration: 0.4 }}
               className="flex flex-col items-center"
             >
-              <span className="font-display text-2xl md:text-3xl text-[#FFD600]">
+              <span className="font-display text-2xl md:text-3xl text-gold">
                 {w.stat}
               </span>
-              <span className="text-[10px] md:text-xs text-[#71717a] font-body uppercase tracking-wider mt-0.5 text-center">
+              <span className="text-[10px] md:text-xs text-muted font-body uppercase tracking-wider mt-0.5 text-center">
                 {w.label}
               </span>
             </motion.div>
@@ -364,11 +355,11 @@ export default function EventsPage() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="font-display text-3xl md:text-4xl text-[#e4e4e7] tracking-wider text-center mb-2"
+          className="font-display text-3xl md:text-4xl text-ink tracking-wider text-center mb-2"
         >
           WHAT WE CATER
         </motion.h2>
-        <p className="text-center text-sm text-[#71717a] font-body mb-8">
+        <p className="text-center text-sm text-muted font-body mb-8">
           Tap any event type to start your booking
         </p>
 
@@ -385,7 +376,7 @@ export default function EventsPage() {
               variants={fadeUp}
               transition={{ duration: 0.4 }}
               onClick={() => pickPackage(evt.label)}
-              className="group relative h-32 md:h-40 rounded-2xl overflow-hidden border border-[#27272a] hover:border-[#FFD600]/60 transition-all active:scale-95"
+              className="group relative h-32 md:h-40 rounded-2xl overflow-hidden border border-line hover:border-gold/60 transition-all active:scale-95"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -394,9 +385,9 @@ export default function EventsPage() {
                 loading="lazy"
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/40 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-base via-base/40 to-transparent" />
               {evt.popular && (
-                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[#FFD600] text-[#09090b] text-[9px] font-bold uppercase tracking-wider">
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-accent text-on-accent text-[9px] font-bold uppercase tracking-wider">
                   Popular
                 </span>
               )}
@@ -427,11 +418,11 @@ export default function EventsPage() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="font-display text-3xl md:text-4xl text-[#e4e4e7] tracking-wider text-center mb-2"
+          className="font-display text-3xl md:text-4xl text-ink tracking-wider text-center mb-2"
         >
           MAKE BIRTHDAYS UNFORGETTABLE
         </motion.h2>
-        <p className="text-center text-sm text-[#71717a] font-body mb-8 max-w-md mx-auto">
+        <p className="text-center text-sm text-muted font-body mb-8 max-w-md mx-auto">
           Curated birthday packages with rolls, drinks, decor and live counter — guests remember the food, you remember the smiles.
         </p>
 
@@ -451,7 +442,7 @@ export default function EventsPage() {
                 key={pkg.name}
                 variants={fadeUp}
                 transition={{ duration: 0.5 }}
-                className="rounded-2xl bg-[#111] border border-[#27272a] overflow-hidden flex flex-col hover:border-[#FF6B9D]/40 transition-colors"
+                className="rounded-2xl bg-card border border-line overflow-hidden flex flex-col hover:border-[#FF6B9D]/40 transition-colors"
               >
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
@@ -462,8 +453,8 @@ export default function EventsPage() {
                     loading="lazy"
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/30 to-transparent" />
-                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#09090b]/85 backdrop-blur">
+                  <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
+                  <span className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-base/85 backdrop-blur">
                     <Icon className="w-3 h-3 text-[#FF6B9D]" />
                     <span className="text-[9px] font-bold text-[#FF6B9D] uppercase tracking-wider">
                       {pkg.tier}
@@ -474,14 +465,14 @@ export default function EventsPage() {
                 {/* Body */}
                 <div className="p-5 flex flex-col gap-4 flex-1">
                   <div>
-                    <h3 className="font-display text-2xl text-[#e4e4e7] tracking-wider leading-tight">
+                    <h3 className="font-display text-2xl text-ink tracking-wider leading-tight">
                       {pkg.name}
                     </h3>
-                    <p className="text-xs text-[#a1a1aa] mt-1">{pkg.people}</p>
+                    <p className="text-xs text-soft mt-1">{pkg.people}</p>
                   </div>
 
                   {/* Pitch (the sell, not the spec sheet) */}
-                  <p className="text-sm text-[#d4d4d8] font-body leading-relaxed">
+                  <p className="text-sm text-soft font-body leading-relaxed">
                     {pkg.pitch}
                   </p>
 
@@ -496,32 +487,32 @@ export default function EventsPage() {
                   {/* Per-plate anchor — all-inclusive (food + packaging +
                       cart staff). Sets a clear, honest floor while the
                       WhatsApp CTA still lets us tailor menu/decor/hours. */}
-                  <div className="pt-3 border-t border-[#27272a] flex items-end justify-between gap-3">
+                  <div className="pt-3 border-t border-line flex items-end justify-between gap-3">
                     <div>
-                      <p className="text-[11px] uppercase tracking-widest text-[#71717a] font-body">
+                      <p className="text-[11px] uppercase tracking-widest text-muted font-body">
                         Starting at
                       </p>
                       <p className="font-display text-3xl text-[#FF6B9D] leading-none mt-1">
                         ₹{pkg.perPlate}
-                        <span className="font-body text-xs text-[#a1a1aa] tracking-normal">
+                        <span className="font-body text-xs text-soft tracking-normal">
                           {" "}
                           /plate
                         </span>
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[11px] text-[#71717a] font-body">
+                      <p className="text-[11px] text-muted font-body">
                         Party from
                       </p>
-                      <p className="text-sm text-[#e4e4e7] font-body font-bold">
+                      <p className="text-sm text-ink font-body font-bold">
                         ₹{(pkg.perPlate * pkg.minGuests).toLocaleString("en-IN")}
                       </p>
-                      <p className="text-[10px] text-[#52525b] font-body">
+                      <p className="text-[10px] text-muted font-body">
                         {pkg.minGuests}+ guests
                       </p>
                     </div>
                   </div>
-                  <p className="text-[10px] text-[#71717a] font-body -mt-2">
+                  <p className="text-[10px] text-muted font-body -mt-2">
                     All-inclusive · food, packaging & cart staff · pay after event
                   </p>
 
@@ -540,7 +531,7 @@ export default function EventsPage() {
                     </a>
                     <button
                       onClick={() => pickPackage(`Birthday — ${pkg.name}`)}
-                      className="w-full py-2 rounded-xl border border-[#27272a] text-[#a1a1aa] text-xs font-body hover:border-[#FF6B9D]/50 hover:text-[#FF6B9D] transition-all"
+                      className="w-full py-2 rounded-xl border border-line text-soft text-xs font-body hover:border-[#FF6B9D]/50 hover:text-[#FF6B9D] transition-all"
                     >
                       Or share details via form →
                     </button>
@@ -556,18 +547,18 @@ export default function EventsPage() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-[#71717a] font-body"
+          className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted font-body"
         >
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
+            <span className="w-1.5 h-1.5 rounded-full bg-veg animate-pulse" />
             Replies in under 10 min
           </span>
           <span className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E]" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-veg" />
             No advance — pay after the event
           </span>
           <span className="flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E]" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-veg" />
             Free menu tasting for 50+ guest bookings
           </span>
         </motion.div>
@@ -579,14 +570,14 @@ export default function EventsPage() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="font-display text-3xl md:text-4xl text-[#FFD600] tracking-wider text-center mb-2"
+          className="font-display text-3xl md:text-4xl text-gold tracking-wider text-center mb-2"
         >
           ALL EVENT PACKAGES
         </motion.h2>
-        <p className="text-center text-sm text-[#71717a] font-body mb-2">
+        <p className="text-center text-sm text-muted font-body mb-2">
           Simple per-plate pricing — pick the tier that fits your crowd
         </p>
-        <p className="text-center text-xs text-[#52525b] font-body mb-8 max-w-md mx-auto">
+        <p className="text-center text-xs text-muted font-body mb-8 max-w-md mx-auto">
           Every plate is all-inclusive: food, packaging and cart staff are
           built in. No setup fees, no hidden charges.
         </p>
@@ -602,10 +593,10 @@ export default function EventsPage() {
               key={pkg.name}
               variants={fadeUp}
               transition={{ duration: 0.5 }}
-              className={`relative rounded-2xl bg-[#111] overflow-hidden flex flex-col border ${
+              className={`relative rounded-2xl bg-card overflow-hidden flex flex-col border ${
                 pkg.highlight
-                  ? "border-[#FFD600] shadow-[0_0_30px_rgba(255,214,0,0.12)]"
-                  : "border-[#27272a]"
+                  ? "border-gold shadow-[0_0_30px_rgba(255,214,0,0.12)]"
+                  : "border-line"
               }`}
             >
               {/* Image */}
@@ -617,9 +608,9 @@ export default function EventsPage() {
                   loading="lazy"
                   className="w-full h-full object-cover"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-[#111]/30 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/30 to-transparent" />
                 {pkg.badge && (
-                  <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[#FFD600] text-[#09090b] text-[10px] font-bold uppercase tracking-wider">
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-accent text-on-accent text-[10px] font-bold uppercase tracking-wider">
                     {pkg.badge}
                   </div>
                 )}
@@ -627,41 +618,41 @@ export default function EventsPage() {
 
               {/* Body */}
               <div className="p-6 space-y-3 flex-1 flex flex-col">
-                <p className="text-[#52525b] text-[10px] font-bold uppercase tracking-widest font-body">
+                <p className="text-muted text-[10px] font-bold uppercase tracking-widest font-body">
                   {pkg.tier}
                 </p>
-                <h3 className="font-display text-3xl text-[#e4e4e7] tracking-wider">
+                <h3 className="font-display text-3xl text-ink tracking-wider">
                   {pkg.name}
                 </h3>
-                <p className="text-[#a1a1aa] text-xs font-body">
+                <p className="text-soft text-xs font-body">
                   {pkg.people}
                   {pkg.occasion && (
-                    <span className="text-[#71717a]"> · {pkg.occasion}</span>
+                    <span className="text-muted"> · {pkg.occasion}</span>
                   )}
                 </p>
                 <div className="flex items-end gap-2">
-                  <p className="font-display text-4xl text-[#FFD600] leading-none">
+                  <p className="font-display text-4xl text-gold leading-none">
                     ₹{pkg.perPlate}
                   </p>
-                  <span className="text-xs text-[#a1a1aa] font-body pb-1">
+                  <span className="text-xs text-soft font-body pb-1">
                     /plate
                   </span>
                 </div>
-                <p className="text-xs text-[#71717a] font-body -mt-1">
+                <p className="text-xs text-muted font-body -mt-1">
                   Packages from{" "}
-                  <span className="text-[#e4e4e7] font-semibold">
+                  <span className="text-ink font-semibold">
                     ₹{pkg.price}
                   </span>{" "}
                   · all-inclusive
                 </p>
 
-                <ul className="space-y-1.5 pt-3 border-t border-[#27272a]">
+                <ul className="space-y-1.5 pt-3 border-t border-line">
                   {pkg.includes.map((item) => (
                     <li
                       key={item}
-                      className="flex items-start gap-2 text-xs font-body text-[#a1a1aa]"
+                      className="flex items-start gap-2 text-xs font-body text-soft"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-[#22C55E] flex-shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-veg flex-shrink-0 mt-0.5" />
                       {item}
                     </li>
                   ))}
@@ -671,8 +662,8 @@ export default function EventsPage() {
                   onClick={() => pickPackage(`${pkg.name} package`)}
                   className={`mt-auto pt-4 w-full py-2.5 rounded-xl font-bold text-sm active:scale-[0.97] transition-all ${
                     pkg.highlight
-                      ? "bg-[#FFD600] text-[#09090b] hover:brightness-110"
-                      : "bg-[#27272a] text-[#e4e4e7] hover:bg-[#3f3f46]"
+                      ? "bg-accent text-on-accent hover:brightness-110"
+                      : "bg-raised text-ink hover:bg-line"
                   }`}
                 >
                   Pick this package →
@@ -689,11 +680,11 @@ export default function EventsPage() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="font-display text-3xl text-[#FFD600] tracking-wider text-center mb-2"
+          className="font-display text-3xl text-gold tracking-wider text-center mb-2"
         >
           ADD-ONS
         </motion.h2>
-        <p className="text-center text-sm text-[#71717a] font-body mb-6">
+        <p className="text-center text-sm text-muted font-body mb-6">
           Stack on extras for that final touch
         </p>
         <motion.div
@@ -710,21 +701,21 @@ export default function EventsPage() {
                 key={addon.title}
                 variants={fadeUp}
                 transition={{ duration: 0.4 }}
-                className="flex items-start gap-3 rounded-xl bg-[#111] border border-[#27272a] p-4 hover:border-[#FFD600]/30 transition-colors"
+                className="flex items-start gap-3 rounded-xl bg-card border border-line p-4 hover:border-gold/30 transition-colors"
               >
-                <div className="w-10 h-10 rounded-lg bg-[#FFD600]/10 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-5 h-5 text-[#FFD600]" />
+                <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-5 h-5 text-gold" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <h4 className="font-display text-base text-[#e4e4e7] tracking-wider truncate">
+                    <h4 className="font-display text-base text-ink tracking-wider truncate">
                       {addon.title}
                     </h4>
-                    <span className="font-mono text-sm text-[#FFD600] flex-shrink-0">
+                    <span className="font-mono text-sm text-gold flex-shrink-0">
                       {addon.price}
                     </span>
                   </div>
-                  <p className="text-xs text-[#71717a] font-body mt-0.5">
+                  <p className="text-xs text-muted font-body mt-0.5">
                     {addon.description}
                   </p>
                 </div>
@@ -740,11 +731,11 @@ export default function EventsPage() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="font-display text-3xl text-[#FFD600] tracking-wider text-center mb-2"
+          className="font-display text-3xl text-gold tracking-wider text-center mb-2"
         >
           BOOK YOUR EVENT
         </motion.h2>
-        <p className="text-center text-sm text-[#71717a] font-body mb-6">
+        <p className="text-center text-sm text-muted font-body mb-6">
           We&apos;ll confirm everything on WhatsApp within minutes
         </p>
 
@@ -763,12 +754,12 @@ export default function EventsPage() {
             value={form.name}
             onChange={(e) => updateField("name", e.target.value)}
             required
-            className="w-full px-4 py-3.5 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-[#e4e4e7] font-body placeholder:text-[#52525b] transition-colors"
+            className="w-full px-4 py-3.5 rounded-xl bg-raised border border-line focus:border-gold focus:outline-none text-ink font-body placeholder:text-muted transition-colors"
           />
 
           {/* Phone */}
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#71717a] font-body">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted font-body">
               +91
             </span>
             <input
@@ -784,7 +775,7 @@ export default function EventsPage() {
                 )
               }
               required
-              className="w-full pl-14 pr-4 py-3.5 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-[#e4e4e7] font-body placeholder:text-[#52525b] transition-colors"
+              className="w-full pl-14 pr-4 py-3.5 rounded-xl bg-raised border border-line focus:border-gold focus:outline-none text-ink font-body placeholder:text-muted transition-colors"
             />
           </div>
 
@@ -797,7 +788,7 @@ export default function EventsPage() {
               onChange={(e) => updateField("eventType", e.target.value)}
               required
               list="event-type-options"
-              className="w-full px-4 py-3.5 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-[#e4e4e7] font-body placeholder:text-[#52525b] transition-colors"
+              className="w-full px-4 py-3.5 rounded-xl bg-raised border border-line focus:border-gold focus:outline-none text-ink font-body placeholder:text-muted transition-colors"
             />
             <datalist id="event-type-options">
               <option value="Birthday — MINI ROCKSTAR" />
@@ -818,7 +809,7 @@ export default function EventsPage() {
               type="date"
               value={form.eventDate}
               onChange={(e) => updateField("eventDate", e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-[#e4e4e7] font-body transition-colors"
+              className="w-full px-4 py-3.5 rounded-xl bg-raised border border-line focus:border-gold focus:outline-none text-ink font-body transition-colors"
             />
             <input
               type="number"
@@ -826,7 +817,7 @@ export default function EventsPage() {
               min={1}
               value={form.guestCount}
               onChange={(e) => updateField("guestCount", e.target.value)}
-              className="w-full px-4 py-3.5 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-[#e4e4e7] font-body placeholder:text-[#52525b] transition-colors"
+              className="w-full px-4 py-3.5 rounded-xl bg-raised border border-line focus:border-gold focus:outline-none text-ink font-body placeholder:text-muted transition-colors"
             />
           </div>
 
@@ -836,16 +827,16 @@ export default function EventsPage() {
             value={form.notes}
             onChange={(e) => updateField("notes", e.target.value)}
             rows={3}
-            className="w-full px-4 py-3.5 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-[#e4e4e7] font-body placeholder:text-[#52525b] transition-colors resize-none"
+            className="w-full px-4 py-3.5 rounded-xl bg-raised border border-line focus:border-gold focus:outline-none text-ink font-body placeholder:text-muted transition-colors resize-none"
           />
 
           {formError && (
-            <p className="text-[#E53935] text-sm font-body">{formError}</p>
+            <p className="text-nonveg text-sm font-body">{formError}</p>
           )}
 
           {success && (
-            <div className="rounded-xl bg-[#22C55E]/10 border border-[#22C55E]/30 p-4 text-center">
-              <p className="text-[#22C55E] font-body font-medium">
+            <div className="rounded-xl bg-veg/10 border border-veg/30 p-4 text-center">
+              <p className="text-veg font-body font-medium">
                 Enquiry sent! We&apos;ll get back to you on WhatsApp.
               </p>
             </div>
@@ -854,12 +845,12 @@ export default function EventsPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-4 rounded-xl bg-[#FFD600] text-[#09090b] font-bold text-lg font-body active:scale-[0.97] transition-all disabled:opacity-50 hover:brightness-110"
+            className="w-full py-4 rounded-xl bg-accent text-on-accent font-bold text-lg font-body active:scale-[0.97] transition-all disabled:opacity-50 hover:brightness-110"
           >
             {submitting ? "Sending..." : "Send Enquiry"}
           </button>
 
-          <p className="text-center text-xs text-[#52525b] font-body">
+          <p className="text-center text-xs text-muted font-body">
             You&apos;ll be redirected to WhatsApp to confirm your booking
           </p>
 
@@ -871,7 +862,7 @@ export default function EventsPage() {
               )}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-[#71717a] hover:text-[#22C55E] underline transition-colors"
+              className="text-xs text-muted hover:text-veg underline transition-colors"
             >
               Or just message us directly on WhatsApp →
             </a>

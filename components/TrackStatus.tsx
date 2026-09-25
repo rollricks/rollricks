@@ -40,7 +40,7 @@ export default function TrackStatus({ status }: TrackStatusProps) {
                 <div className="absolute top-5 -left-1/2 w-full h-0.5 -z-10">
                   <div
                     className={`h-full transition-colors duration-500 ${
-                      idx <= currentIdx ? "bg-[#FFD600]" : "bg-[#27272a]"
+                      idx <= currentIdx ? "bg-accent" : "bg-raised"
                     }`}
                   />
                 </div>
@@ -50,21 +50,21 @@ export default function TrackStatus({ status }: TrackStatusProps) {
               <div
                 className={`relative w-10 h-10 rounded-full flex items-center justify-center text-lg border-2 transition-colors duration-500 ${
                   isActive
-                    ? "border-[#FFD600] bg-[#FFD600]/10"
-                    : "border-[#27272a] bg-[#111]"
+                    ? "border-gold bg-accent/10"
+                    : "border-line bg-card"
                 }`}
               >
                 {step.icon}
                 {/* Pulse ring on current step */}
                 {isCurrent && (
-                  <span className="absolute inset-0 rounded-full border-2 border-[#FFD600] animate-ping opacity-30" />
+                  <span className="absolute inset-0 rounded-full border-2 border-gold animate-ping opacity-30" />
                 )}
               </div>
 
               {/* Label */}
               <span
                 className={`mt-2 text-[11px] font-medium text-center leading-tight transition-colors duration-500 ${
-                  isActive ? "text-[#FFD600]" : "text-[#71717a]"
+                  isActive ? "text-gold" : "text-muted"
                 }`}
               >
                 {step.label}

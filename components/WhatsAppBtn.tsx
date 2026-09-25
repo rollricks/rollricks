@@ -6,12 +6,11 @@ import { useCart } from "@/context/CartContext";
 import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
 
 export default function WhatsAppBtn() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "/";
   const { totalItems } = useCart();
-  // Pages that show a full-width sticky bottom cart bar — bump the
-  // WhatsApp FAB above it so they don't overlap on mobile.
-  const stickyCartPages = ["/", "/menu"];
-  const offsetForCart = stickyCartPages.includes(pathname) && totalItems > 0;
+  // One floating button at a time: once the cart bar is showing it
+  // owns the bottom of the screen, and WhatsApp stays in the nav drawer.
+  if (totalItems > 0 && !pathname.startsWith("/checkout")) return null;
 
   return (
     <motion.a
@@ -28,12 +27,8 @@ export default function WhatsAppBtn() {
       }}
       whileHover={{ scale: 1.12 }}
       whileTap={{ scale: 0.95 }}
-      style={{
-        bottom: offsetForCart
-          ? "calc(96px + env(safe-area-inset-bottom))"
-          : "calc(24px + env(safe-area-inset-bottom))",
-      }}
-      className="fixed right-6 z-40 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-lg shadow-[#25D366]/20 hover:shadow-[#25D366]/40 transition-all"
+      style={{ bottom: "calc(20px + env(safe-area-inset-bottom))" }}
+      className="fixed right-4 z-40 w-[52px] h-[52px] rounded-full bg-[#25D366] flex items-center justify-center shadow-lg shadow-[#25D366]/20 hover:shadow-[#25D366]/40 transition-all"
       aria-label="Chat on WhatsApp"
     >
       <svg

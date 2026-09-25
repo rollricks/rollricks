@@ -29,18 +29,18 @@ export default function ComboCard({ combo, featured }: ComboCardProps) {
 
   return (
     <motion.div
-      whileHover={{ scale: 1.02, y: -4 }}
+      whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-      className={`rounded-2xl bg-[#111] flex flex-col border overflow-hidden ${
+      className={`w-full rounded-2xl bg-card flex flex-col border overflow-hidden ${
         isFeatured
-          ? "border-[#FFD600]/60 shadow-[0_0_24px_-6px_rgba(255,214,0,0.15)]"
-          : "border-[#27272a]"
+          ? "border-gold/50 glow"
+          : "border-line"
       }`}
     >
       {/* Hero image with the tag badge floated on top */}
       {combo.image && (
-        <div className="relative w-full h-40 bg-[#27272a] overflow-hidden">
+        <div className="relative w-full h-44 bg-raised overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={combo.image}
@@ -48,8 +48,8 @@ export default function ComboCard({ combo, featured }: ComboCardProps) {
             loading="lazy"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#111] via-transparent to-transparent" />
-          <span className="absolute top-3 left-3 inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#FFD600] text-[#09090b] shadow-md">
+          <div className="absolute inset-0 bg-gradient-to-t from-card via-transparent to-transparent" />
+          <span className="absolute top-3 left-3 inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent text-on-accent shadow-md">
             {combo.tag}
           </span>
         </div>
@@ -57,32 +57,32 @@ export default function ComboCard({ combo, featured }: ComboCardProps) {
 
       <div className="p-5 flex flex-col gap-3 flex-1">
         {!combo.image && (
-          <span className="inline-flex self-start px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#FFD600]/10 text-[#FFD600] border border-[#FFD600]/20">
+          <span className="inline-flex self-start px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent/10 text-gold border border-gold/20">
             {combo.tag}
           </span>
         )}
 
       {/* Name */}
-      <h3 className="font-display text-2xl text-[#e4e4e7] tracking-wider leading-none">
+      <h3 className="font-display font-black text-2xl text-ink leading-tight">
         {combo.name}
       </h3>
 
       {/* Tagline */}
-      <p className="text-xs italic text-[#71717a] leading-relaxed">
+      <p className="text-xs italic text-muted leading-relaxed">
         {combo.tagline}
       </p>
 
       {/* Type indicator */}
       <div className="flex items-center gap-1.5">
         <span className={`w-3 h-3 rounded-sm border-2 flex items-center justify-center ${
-          combo.type === "nonveg" ? "border-[#E53935]" : combo.type === "both" ? "border-[#FFD600]" : "border-[#22C55E]"
+          combo.type === "nonveg" ? "border-nonveg" : combo.type === "both" ? "border-gold" : "border-veg"
         }`}>
           <span className={`w-1.5 h-1.5 rounded-full ${
-            combo.type === "nonveg" ? "bg-[#E53935]" : combo.type === "both" ? "bg-[#FFD600]" : "bg-[#22C55E]"
+            combo.type === "nonveg" ? "bg-nonveg" : combo.type === "both" ? "bg-accent" : "bg-veg"
           }`} />
         </span>
         <span className={`text-[10px] font-bold uppercase tracking-wider ${
-          combo.type === "nonveg" ? "text-[#E53935]" : combo.type === "both" ? "text-[#FFD600]" : "text-[#22C55E]"
+          combo.type === "nonveg" ? "text-nonveg" : combo.type === "both" ? "text-gold" : "text-veg"
         }`}>
           {combo.type === "both" ? "VEG + NON-VEG" : combo.type.toUpperCase()}
         </span>
@@ -95,16 +95,16 @@ export default function ComboCard({ combo, featured }: ComboCardProps) {
             <span
               className={`w-2 h-2 rounded-full flex-shrink-0 ${
                 combo.type === "nonveg"
-                  ? "bg-[#E53935]"
+                  ? "bg-nonveg"
                   : combo.type === "both"
                   ? idx % 2 === 0
-                    ? "bg-[#22C55E]"
-                    : "bg-[#E53935]"
-                  : "bg-[#22C55E]"
+                    ? "bg-veg"
+                    : "bg-nonveg"
+                  : "bg-veg"
               }`}
             />
-            <span className="text-[#e4e4e7]">{item.name}</span>
-            <span className="text-[#71717a] font-mono text-xs ml-auto">
+            <span className="text-ink">{item.name}</span>
+            <span className="text-muted font-mono text-xs ml-auto">
               ₹{item.price}
             </span>
           </li>
@@ -113,13 +113,13 @@ export default function ComboCard({ combo, featured }: ComboCardProps) {
 
       {/* Price row */}
       <div className="flex items-end gap-3 mt-auto pt-2">
-        <span className="font-display text-3xl text-[#FFD600] leading-none">
+        <span className="font-display font-black text-3xl text-gold leading-none">
           ₹{combo.price}
         </span>
-        <span className="text-sm text-[#71717a] line-through font-mono">
+        <span className="text-sm text-muted line-through font-mono">
           ₹{combo.originalPrice}
         </span>
-        <span className="ml-auto text-xs font-bold text-[#22C55E] bg-[#22C55E]/10 px-2 py-0.5 rounded-full">
+        <span className="ml-auto text-xs font-bold text-veg bg-veg/10 px-2 py-0.5 rounded-full">
           Saves ₹{combo.savings}
         </span>
       </div>
@@ -127,13 +127,13 @@ export default function ComboCard({ combo, featured }: ComboCardProps) {
         {/* Add to Cart button */}
         <button
           onClick={handleAddToCart}
-          className={`mt-2 w-full py-2.5 rounded-xl font-bold text-sm active:scale-[0.97] transition-all ${
+          className={`mt-2 w-full py-3 rounded-xl font-bold text-sm uppercase tracking-wide active:scale-[0.97] transition-all ${
             added
-              ? "bg-[#22C55E] text-white"
-              : "bg-[#FFD600] text-[#09090b] hover:brightness-110"
+              ? "bg-veg text-white"
+              : "bg-accent text-on-accent hover:brightness-110"
           }`}
         >
-          {added ? "Added!" : "Add to Cart"}
+          {added ? "Added ✓" : "Add combo +"}
         </button>
       </div>
     </motion.div>

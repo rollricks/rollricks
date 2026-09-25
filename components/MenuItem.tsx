@@ -1,148 +1,107 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Minus, Check } from "lucide-react";
+import { Plus, Minus } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useUI } from "@/context/UIContext";
 import type { MenuItem as MenuItemType } from "@/lib/menu-data";
+import FoodImage from "./FoodImage";
+import VegMark from "./VegMark";
 
 interface MenuItemProps {
   item: MenuItemType;
+  size?: "md" | "lg";
 }
 
-// Photo-forward card. Mobile shows two per row (the menu page grid is
-// grid-cols-2), so the photo does the selling and the name/price/add
-// sit beneath it. Cart logic is unchanged from the old row layout.
-export default function MenuItem({ item }: MenuItemProps) {
+// Photo-forward food card. Tapping the card opens the bottom sheet
+// (bigger photo, add-ons, quantity); the ADD button adds straight to
+// cart for the no-fuss path.
+export default function MenuItem({ item, size = "md" }: MenuItemProps) {
   const { items, addItem, updateQuantity } = useCart();
-  const [justAdded, setJustAdded] = useState(false);
+  const { openItem } = useUI();
 
-  const cartItem = items.find((ci) => ci.id === item.id);
-  const quantity = cartItem?.quantity ?? 0;
+  const quantity = items.find((ci) => ci.id === item.id)?.quantity ?? 0;
   const unavailable = item.available === false;
+  const hasAddons = !!item.addons?.length;
 
-  const handleAdd = () => {
+  const handleAdd = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (unavailable) return;
-    addItem({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      type: item.type,
-    });
-    setJustAdded(true);
-    setTimeout(() => setJustAdded(false), 800);
+    if (hasAddons) {
+      openItem(item);
+      return;
+    }
+    addItem({ id: item.id, name: item.name, price: item.price, type: item.type });
   };
 
-  const VegDot = (
-    <span
-      className={`w-4 h-4 rounded-sm border-2 flex items-center justify-center bg-[#09090b]/80 backdrop-blur ${
-        item.type === "veg" ? "border-[#22C55E]" : "border-[#E53935]"
-      }`}
-    >
-      <span
-        className={`w-2 h-2 rounded-full ${
-          item.type === "veg" ? "bg-[#22C55E]" : "bg-[#E53935]"
-        }`}
-      />
-    </span>
-  );
-
   return (
-    <motion.div
-      whileTap={unavailable ? {} : { scale: 0.985 }}
+    <motion.article
+      whileTap={unavailable ? undefined : { scale: 0.985 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className={`group flex flex-col rounded-2xl bg-[#111] border border-[#27272a] overflow-hidden hover:border-[#3f3f46] transition-colors ${
+      onClick={() => openItem(item)}
+      className={`group relative flex flex-col rounded-2xl bg-card border border-line overflow-hidden cursor-pointer hover:border-line-strong transition-colors ${
         unavailable ? "opacity-60" : ""
       }`}
+      aria-label={`${item.name}, ₹${item.price}`}
     >
-      {/* ── Photo ── */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-[#1a1a1a]">
-        {item.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={item.image}
-            alt={item.name}
-            loading="lazy"
-            className="w-full h-full object-cover group-active:scale-[1.03] transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-3xl bg-gradient-to-br from-[#1f1f23] to-[#111]">
-            🍽️
-          </div>
-        )}
+      {/* Photo */}
+      <div className={`relative w-full overflow-hidden bg-raised ${size === "lg" ? "aspect-[4/3.4]" : "aspect-[4/3]"}`}>
+        <FoodImage item={item} className="group-hover:scale-[1.04] transition-transform duration-500" />
 
-        {/* veg/non-veg dot */}
-        <span className="absolute top-2 left-2">{VegDot}</span>
-
-        {/* badge */}
         {item.badge && !unavailable && (
-          <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#FFD600] text-[#09090b] shadow">
-            {item.badge}
+          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-accent text-on-accent shadow">
+            {item.badge.replace(/^★\s*/, "")}
           </span>
         )}
 
-        {/* unavailable overlay */}
         {unavailable && (
-          <div className="absolute inset-0 bg-[#09090b]/65 flex items-center justify-center">
-            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#27272a] text-[#a1a1aa] border border-[#3f3f46]">
-              Sold out
+          <div className="absolute inset-0 bg-base/70 flex items-center justify-center">
+            <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-raised text-soft border border-line-strong">
+              Sold out today
             </span>
           </div>
         )}
       </div>
 
-      {/* ── Body ── */}
+      {/* Body */}
       <div className="flex flex-col flex-1 p-3 gap-1">
-        <p className="text-sm font-semibold text-[#e4e4e7] leading-tight line-clamp-2">
+        <div className="flex items-center justify-between gap-2">
+          <VegMark type={item.type} />
+          <span className="text-[10px] uppercase tracking-wider text-muted">{item.section}</span>
+        </div>
+        <h3 className={`font-display font-bold text-ink leading-tight line-clamp-2 ${size === "lg" ? "text-lg" : "text-[15px]"}`}>
           {item.name}
-        </p>
+        </h3>
         {item.description && (
-          <p className="text-[11px] text-[#71717a] leading-snug line-clamp-2">
-            {item.description}
-          </p>
+          <p className="text-[11px] text-muted leading-snug line-clamp-2">{item.description}</p>
         )}
 
-        {/* price + add */}
         <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-          <span className="font-display text-xl text-[#FFD600] leading-none">
-            ₹{item.price}
-          </span>
+          <span className="font-display font-black text-xl text-gold leading-none">₹{item.price}</span>
 
           {!unavailable &&
-            (quantity === 0 ? (
+            (quantity === 0 || hasAddons ? (
               <button
                 onClick={handleAdd}
-                className={`h-9 px-3 flex items-center justify-center gap-1 rounded-lg font-bold text-sm active:scale-90 transition-all ${
-                  justAdded
-                    ? "bg-[#22C55E] text-white"
-                    : "bg-[#FFD600] text-[#09090b] hover:brightness-110"
-                }`}
+                className="h-9 px-3 flex items-center justify-center gap-1 rounded-lg font-bold text-xs uppercase tracking-wide bg-accent text-on-accent hover:brightness-110 active:scale-90 transition-all"
                 aria-label={`Add ${item.name} to cart`}
               >
-                {justAdded ? (
-                  <Check className="w-4 h-4" />
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4" /> Add
-                  </>
-                )}
+                Add <Plus className="w-3.5 h-3.5" />
               </button>
             ) : (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={() => updateQuantity(item.id, quantity - 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#27272a] hover:bg-[#3f3f46] active:scale-90 transition-all"
-                  aria-label="Decrease quantity"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-raised text-ink hover:bg-line active:scale-90 transition-all"
+                  aria-label={`Remove one ${item.name}`}
                 >
                   <Minus className="w-3.5 h-3.5" />
                 </button>
-                <span className="text-sm font-mono w-5 text-center font-bold">
-                  {quantity}
-                </span>
+                <span className="text-sm font-mono w-5 text-center font-bold text-ink">{quantity}</span>
                 <button
                   onClick={() => updateQuantity(item.id, quantity + 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#FFD600] text-[#09090b] hover:brightness-110 active:scale-90 transition-all"
-                  aria-label="Increase quantity"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg bg-accent text-on-accent hover:brightness-110 active:scale-90 transition-all"
+                  aria-label={`Add one more ${item.name}`}
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -150,6 +109,6 @@ export default function MenuItem({ item }: MenuItemProps) {
             ))}
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 }

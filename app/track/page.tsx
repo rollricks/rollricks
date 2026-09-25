@@ -35,74 +35,86 @@ export default function TrackPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
 
+  // The phone number actually being tracked (set on submit). Keeping it
+  // separate from `searching` means the poll below keeps running after
+  // the first result lands.
+  const [trackedPhone, setTrackedPhone] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!searching || phone.length !== 10) return;
+    if (!trackedPhone) return;
+    const p = trackedPhone;
 
     setOrders([]);
     setNotFound(false);
     setError(null);
 
     let active = true;
+    let first = true;
 
     async function fetchOrders() {
-      const { data, error: err } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("phone", phone)
-        .order("created_at", { ascending: false })
-        .limit(20);
+      // Phone-scoped lookup (supabase/migrations/002). Customers can no
+      // longer read the orders table directly.
+      let { data, error: err } = await supabase.rpc("track_orders", { p_phone: p });
+      if (err && (err.code === "PGRST202" || err.code === "42883")) {
+        // Migration 002 not applied yet — legacy direct read.
+        ({ data, error: err } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("phone", p)
+          .order("created_at", { ascending: false })
+          .limit(20));
+      }
 
       if (!active) return;
+      const wasFirst = first;
+      first = false;
       setSearching(false);
       setHasSearched(true);
 
       if (err) {
         console.error("Supabase error:", err);
-        setError("Tracking not available yet. Contact us on WhatsApp!");
+        if (wasFirst) setError("Tracking not available yet. Contact us on WhatsApp!");
         return;
       }
 
-      const ordersList = (data ?? []).map((r) => rowToOrder(r as OrderRow) as unknown as OrderData);
+      const ordersList: OrderData[] = ((data ?? []) as unknown[]).map((r) => rowToOrder(r as OrderRow) as unknown as OrderData);
       if (ordersList.length === 0) {
         setNotFound(true);
         setOrders([]);
         return;
       }
       setOrders(ordersList);
-      const activeOrder = ordersList.find((o) => o.status !== "done");
-      setExpandedOrder(activeOrder?.id ?? ordersList[0]?.id ?? null);
+      if (wasFirst) {
+        const activeOrder = ordersList.find((o) => o.status !== "done");
+        setExpandedOrder(activeOrder?.id ?? ordersList[0]?.id ?? null);
+      }
       setNotFound(false);
     }
 
     fetchOrders();
 
-    // Live updates: any insert/update/delete on this customer's orders
-    // re-runs the query so the page reflects status changes the moment
-    // the admin clicks "Confirmed" / "Ready".
-    const channel = supabase
-      .channel(`orders-track-${phone}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "orders",
-          filter: `phone=eq.${phone}`,
-        },
-        () => fetchOrders()
-      )
-      .subscribe();
+    // Live-ish updates: re-check every 15s while the tab is visible, and
+    // immediately when the customer comes back to the tab.
+    const poll = setInterval(() => {
+      if (document.visibilityState === "visible") fetchOrders();
+    }, 15_000);
+    const onVisible = () => document.visibilityState === "visible" && fetchOrders();
+    document.addEventListener("visibilitychange", onVisible);
 
     return () => {
       active = false;
-      supabase.removeChannel(channel);
+      clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [searching, phone]);
+  }, [trackedPhone]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (phone.length !== 10) return;
     setSearching(true);
+    // Re-submit of the same number still refetches
+    setTrackedPhone(null);
+    setTimeout(() => setTrackedPhone(phone), 0);
   }
 
   const statusLabel: Record<string, string> = {
@@ -137,7 +149,7 @@ export default function TrackPage() {
   const pastOrders = orders.filter((o) => o.status === "done");
 
   return (
-    <main className="min-h-screen bg-[#09090b] text-[#e4e4e7] px-4 py-12">
+    <main className="min-h-screen bg-base text-ink px-4 py-12">
       <div className="max-w-lg mx-auto space-y-8">
         {/* Title */}
         <motion.div
@@ -146,10 +158,10 @@ export default function TrackPage() {
           transition={{ duration: 0.5 }}
           className="text-center"
         >
-          <h1 className="font-display text-5xl md:text-6xl text-[#FFD600] tracking-wider">
+          <h1 className="font-display text-5xl md:text-6xl text-gold tracking-wider">
             TRACK ORDER
           </h1>
-          <p className="text-[#a1a1aa] mt-2 font-body">
+          <p className="text-soft mt-2 font-body">
             Enter your phone number to find your orders
           </p>
         </motion.div>
@@ -163,7 +175,7 @@ export default function TrackPage() {
           className="space-y-4"
         >
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#71717a] font-body text-lg">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted font-body text-lg">
               +91
             </span>
             <input
@@ -176,13 +188,13 @@ export default function TrackPage() {
                 setPhone(val);
               }}
               placeholder="Your 10-digit number"
-              className="w-full pl-14 pr-4 py-4 rounded-xl bg-[#18181b] border border-[#27272a] focus:border-[#FFD600] focus:outline-none text-lg font-body text-[#e4e4e7] placeholder:text-[#52525b] transition-colors"
+              className="w-full pl-14 pr-4 py-4 rounded-xl bg-raised border border-line focus:border-gold focus:outline-none text-lg font-body text-ink placeholder:text-muted transition-colors"
             />
           </div>
           <button
             type="submit"
             disabled={phone.length !== 10 || searching}
-            className="w-full py-4 rounded-xl bg-[#FFD600] text-[#09090b] font-bold text-lg font-body active:scale-[0.97] transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110"
+            className="w-full py-4 rounded-xl bg-accent text-on-accent font-bold text-lg font-body active:scale-[0.97] transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:brightness-110"
           >
             {searching ? "Searching..." : "Find My Orders"}
           </button>
@@ -198,9 +210,9 @@ export default function TrackPage() {
               exit={{ opacity: 0 }}
               className="space-y-4"
             >
-              <div className="h-16 rounded-xl bg-[#18181b] animate-pulse" />
-              <div className="h-40 rounded-xl bg-[#18181b] animate-pulse" />
-              <div className="h-10 rounded-xl bg-[#18181b] animate-pulse" />
+              <div className="h-16 rounded-xl bg-raised animate-pulse" />
+              <div className="h-40 rounded-xl bg-raised animate-pulse" />
+              <div className="h-10 rounded-xl bg-raised animate-pulse" />
             </motion.div>
           )}
 
@@ -217,7 +229,7 @@ export default function TrackPage() {
               {/* Active Orders */}
               {activeOrders.length > 0 && (
                 <div className="space-y-3">
-                  <h2 className="font-display text-lg text-[#FFD600] tracking-wider">
+                  <h2 className="font-display text-lg text-gold tracking-wider">
                     ACTIVE ORDERS ({activeOrders.length})
                   </h2>
                   {activeOrders.map((order) => (
@@ -225,7 +237,7 @@ export default function TrackPage() {
                       key={order.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl bg-[#111] border border-[#27272a] overflow-hidden"
+                      className="rounded-xl bg-card border border-line overflow-hidden"
                     >
                       {/* Order header - always visible */}
                       <button
@@ -237,7 +249,7 @@ export default function TrackPage() {
                         className="w-full flex items-center justify-between px-4 py-3 text-left"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-sm text-[#FFD600] font-bold">
+                          <span className="font-mono text-sm text-gold font-bold">
                             #{order.orderId}
                           </span>
                           <span
@@ -251,10 +263,10 @@ export default function TrackPage() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-display text-lg text-[#FFD600]">
+                          <span className="font-display text-lg text-gold">
                             ₹{order.total}
                           </span>
-                          <span className="text-[#71717a] text-xs">
+                          <span className="text-muted text-xs">
                             {expandedOrder === order.id ? "▲" : "▼"}
                           </span>
                         </div>
@@ -270,7 +282,7 @@ export default function TrackPage() {
                             transition={{ duration: 0.25 }}
                             className="overflow-hidden"
                           >
-                            <div className="px-4 pb-4 space-y-4 border-t border-[#27272a]">
+                            <div className="px-4 pb-4 space-y-4 border-t border-line">
                               {/* Status tracker */}
                               <div className="pt-4">
                                 <TrackStatus status={order.status} />
@@ -283,10 +295,10 @@ export default function TrackPage() {
                                     key={idx}
                                     className="flex items-center justify-between text-sm font-body"
                                   >
-                                    <span className="text-[#e4e4e7]">
+                                    <span className="text-ink">
                                       {item.quantity}x {item.name}
                                     </span>
-                                    <span className="font-mono text-[#a1a1aa]">
+                                    <span className="font-mono text-soft">
                                       ₹{item.price}
                                     </span>
                                   </li>
@@ -294,18 +306,18 @@ export default function TrackPage() {
                               </ul>
 
                               {/* Meta */}
-                              <div className="grid grid-cols-2 gap-2 text-xs border-t border-[#27272a] pt-3">
+                              <div className="grid grid-cols-2 gap-2 text-xs border-t border-line pt-3">
                                 <div>
-                                  <span className="text-[#71717a]">Pickup: </span>
-                                  <span className="text-[#e4e4e7]">{order.pickupTime}</span>
+                                  <span className="text-muted">Pickup: </span>
+                                  <span className="text-ink">{order.pickupTime}</span>
                                 </div>
                                 <div>
-                                  <span className="text-[#71717a]">Payment: </span>
-                                  <span className="text-[#e4e4e7]">{order.paymentMethod}</span>
+                                  <span className="text-muted">Payment: </span>
+                                  <span className="text-ink">{order.paymentMethod}</span>
                                 </div>
                                 <div>
-                                  <span className="text-[#71717a]">Placed: </span>
-                                  <span className="text-[#e4e4e7]">{formatTime(order.createdAt)}</span>
+                                  <span className="text-muted">Placed: </span>
+                                  <span className="text-ink">{formatTime(order.createdAt)}</span>
                                 </div>
                               </div>
                             </div>
@@ -320,7 +332,7 @@ export default function TrackPage() {
               {/* Past Orders */}
               {pastOrders.length > 0 && (
                 <div className="space-y-3">
-                  <h2 className="font-display text-sm text-[#71717a] tracking-wider uppercase">
+                  <h2 className="font-display text-sm text-muted tracking-wider uppercase">
                     Past Orders ({pastOrders.length})
                   </h2>
                   {pastOrders.map((order) => (
@@ -328,7 +340,7 @@ export default function TrackPage() {
                       key={order.id}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="rounded-xl bg-[#111] border border-[#27272a] overflow-hidden"
+                      className="rounded-xl bg-card border border-line overflow-hidden"
                     >
                       <button
                         onClick={() =>
@@ -339,18 +351,18 @@ export default function TrackPage() {
                         className="w-full flex items-center justify-between px-4 py-3 text-left opacity-60"
                       >
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-sm text-[#a1a1aa]">
+                          <span className="font-mono text-sm text-soft">
                             #{order.orderId}
                           </span>
-                          <span className="text-[10px] text-[#71717a]">
+                          <span className="text-[10px] text-muted">
                             {formatTime(order.createdAt)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm text-[#71717a]">
+                          <span className="font-mono text-sm text-muted">
                             ₹{order.total}
                           </span>
-                          <span className="text-[10px] text-[#22C55E]">Done</span>
+                          <span className="text-[10px] text-veg">Done</span>
                         </div>
                       </button>
 
@@ -363,12 +375,12 @@ export default function TrackPage() {
                             transition={{ duration: 0.25 }}
                             className="overflow-hidden"
                           >
-                            <div className="px-4 pb-4 border-t border-[#27272a]">
+                            <div className="px-4 pb-4 border-t border-line">
                               <ul className="space-y-1.5 pt-3">
                                 {order.items.map((item, idx) => (
                                   <li
                                     key={idx}
-                                    className="flex items-center justify-between text-sm font-body text-[#71717a]"
+                                    className="flex items-center justify-between text-sm font-body text-muted"
                                   >
                                     <span>
                                       {item.quantity}x {item.name}
@@ -388,7 +400,7 @@ export default function TrackPage() {
                 </div>
               )}
 
-              <p className="text-center text-xs text-[#52525b] font-body">
+              <p className="text-center text-xs text-muted font-body">
                 This page updates in real-time. No need to refresh.
               </p>
             </motion.div>
@@ -404,12 +416,12 @@ export default function TrackPage() {
               className="text-center space-y-4 py-8"
             >
               <div className="text-5xl">🤷</div>
-              <p className="text-[#a1a1aa] font-body text-lg">
+              <p className="text-soft font-body text-lg">
                 No orders found for this number
               </p>
               <Link
                 href="/menu"
-                className="inline-block px-6 py-3 rounded-xl bg-[#FFD600] text-[#09090b] font-bold font-body hover:brightness-110 transition-all"
+                className="inline-block px-6 py-3 rounded-xl bg-accent text-on-accent font-bold font-body hover:brightness-110 transition-all"
               >
                 Place a new order?
               </Link>
@@ -425,8 +437,8 @@ export default function TrackPage() {
               exit={{ opacity: 0 }}
               className="text-center space-y-4 py-8"
             >
-              <div className="rounded-xl bg-[#E53935]/10 border border-[#E53935]/30 p-5">
-                <p className="text-[#E53935] font-body font-medium">
+              <div className="rounded-xl bg-nonveg/10 border border-nonveg/30 p-5">
+                <p className="text-nonveg font-body font-medium">
                   {error}
                 </p>
               </div>
@@ -434,7 +446,7 @@ export default function TrackPage() {
                 href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi! I want to track my order.")}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#22C55E] text-white font-bold font-body hover:brightness-110 transition-all"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-veg text-white font-bold font-body hover:brightness-110 transition-all"
               >
                 <svg
                   viewBox="0 0 24 24"

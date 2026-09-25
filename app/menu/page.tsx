@@ -1,112 +1,189 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import { ShoppingCart } from "lucide-react";
-import { menuCategories } from "@/lib/menu-data";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { Search, X } from "lucide-react";
+import { allMenuItems, SECTIONS, type MenuItem as MenuItemType } from "@/lib/menu-data";
 import { combos } from "@/lib/combo-data";
+import { useMenuAvailability } from "@/lib/useMenuAvailability";
 import ComboCard from "@/components/ComboCard";
 import MenuItem from "@/components/MenuItem";
-import { useCart } from "@/context/CartContext";
-import { supabase } from "@/lib/supabase";
+import VegMark from "@/components/VegMark";
 
-const tabs = [
-  { key: "Combos", emoji: "🎯", color: "text-[#FFD600]" },
-  { key: "Veg", emoji: "🟢", color: "text-[#22C55E]" },
-  { key: "Non-Veg", emoji: "🔴", color: "text-[#E53935]" },
-  { key: "Drinks", emoji: "🥤", color: "text-[#3B82F6]" },
-] as const;
+type DietFilter = "all" | "veg" | "nonveg";
 
-type Tab = (typeof tabs)[number]["key"];
+const DIETS: { key: DietFilter; label: string }[] = [
+  { key: "veg", label: "Veg" },
+  { key: "nonveg", label: "Non-Veg" },
+  { key: "all", label: "All" },
+];
 
-const tabColors: Record<Tab, string> = {
-  Combos: "#FFD600",
-  Veg: "#22C55E",
-  "Non-Veg": "#E53935",
-  Drinks: "#3B82F6",
-};
+// Drinks are shared by both menus, so they show under Veg and Non-Veg.
+function matchesDiet(item: MenuItemType, diet: DietFilter) {
+  if (diet === "all" || item.section === "Drinks") return true;
+  return item.type === diet;
+}
 
 export default function MenuPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("Combos");
-  const { totalItems, totalPrice } = useCart();
-  const [menuAvailability, setMenuAvailability] = useState<Record<string, boolean>>({});
+  const { withAvailability } = useMenuAvailability();
+  const [diet, setDiet] = useState<DietFilter>("all");
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState<string>("");
+  const chipBarRef = useRef<HTMLDivElement>(null);
+  const pendingScroll = useRef<string | null>(null);
 
-  // Load menu availability from Supabase (admin-controlled, real-time).
+  // Deep links from the home page: /menu/?diet=veg, /menu/?section=Tandoor
   useEffect(() => {
-    let active = true;
-
-    async function loadConfig() {
-      const { data, error } = await supabase
-        .from("menu_config")
-        .select("item_id, available");
-      if (error || !active) return;
-      const config: Record<string, boolean> = {};
-      (data ?? []).forEach((row) => {
-        if (typeof row.available === "boolean") config[row.item_id] = row.available;
-      });
-      setMenuAvailability(config);
-    }
-
-    loadConfig();
-
-    const channel = supabase
-      .channel("menu_config-watch")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "menu_config" },
-        () => loadConfig()
-      )
-      .subscribe();
-
-    return () => {
-      active = false;
-      supabase.removeChannel(channel);
-    };
+    const params = new URLSearchParams(window.location.search);
+    const d = params.get("diet");
+    if (d === "veg" || d === "nonveg") setDiet(d);
+    const s = params.get("section");
+    if (s) pendingScroll.current = s;
   }, []);
 
-  // Apply availability: if admin toggled it off, override local data
-  const applyAvailability = (items: typeof menuCategories[0]["items"]) =>
-    items.map((item) => ({
-      ...item,
-      available: menuAvailability[item.id] !== undefined ? menuAvailability[item.id] : item.available,
-    }));
+  const q = query.trim().toLowerCase();
 
-  const color = tabColors[activeTab];
+  const groups = useMemo(() => {
+    const items = allMenuItems
+      .map(withAvailability)
+      .filter((i) => matchesDiet(i, diet))
+      .filter((i) => !q || i.name.toLowerCase().includes(q) || i.description.toLowerCase().includes(q) || i.section.toLowerCase().includes(q));
+    return SECTIONS.map((s) => ({ ...s, items: items.filter((i) => i.section === s.key) })).filter((g) => g.items.length > 0);
+  }, [withAvailability, diet, q]);
 
-  const vegCategories = menuCategories.filter(
-    (cat) => cat.items[0]?.type === "veg" && cat.name !== "Drinks"
+  const visibleCombos = useMemo(
+    () =>
+      combos.filter((c) => {
+        if (diet === "veg" && c.type !== "veg") return false;
+        if (diet === "nonveg" && c.type === "veg") return false;
+        if (!q) return true;
+        return c.name.toLowerCase().includes(q) || c.items.some((i) => i.name.toLowerCase().includes(q)) || "combos".includes(q);
+      }),
+    [diet, q]
   );
 
-  const nonVegCategories = menuCategories.filter(
-    (cat) => cat.items[0]?.type === "nonveg"
-  );
+  const chips = [
+    ...(visibleCombos.length ? [{ key: "Combos", emoji: "🎁" }] : []),
+    ...groups.map((g) => ({ key: g.key as string, emoji: g.emoji as string })),
+  ];
 
-  const drinksCategory = menuCategories.find(
-    (cat) => cat.name === "Drinks"
-  );
+  const scrollTo = (key: string) => {
+    const el = document.getElementById(`sec-${key}`);
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY - 64 - (chipBarRef.current?.offsetHeight ?? 0) - 8;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
+
+  // Scroll to ?section= once the sections have rendered
+  useEffect(() => {
+    if (!pendingScroll.current) return;
+    const key = pendingScroll.current;
+    pendingScroll.current = null;
+    requestAnimationFrame(() => scrollTo(key));
+  }, [groups]);
+
+  // Scrollspy: highlight the chip for the section in view
+  useEffect(() => {
+    const els = chips.map((c) => document.getElementById(`sec-${c.key}`)).filter(Boolean) as HTMLElement[];
+    if (!els.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible[0]) setActive(visible[0].target.id.replace("sec-", ""));
+      },
+      { rootMargin: "-140px 0px -55% 0px" }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chips.map((c) => c.key).join("|")]);
+
+  // Keep the active chip visible in the horizontal chip scroller
+  useEffect(() => {
+    if (!active) return;
+    document.getElementById(`chip-${active}`)?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }, [active]);
+
+  const dietAccent = diet === "veg" ? "bg-veg" : diet === "nonveg" ? "bg-nonveg" : "bg-accent";
+  const dietText = diet === "veg" ? "text-veg" : diet === "nonveg" ? "text-nonveg" : "text-gold";
+  const total = groups.reduce((s, g) => s + g.items.length, 0) + visibleCombos.length;
 
   return (
-    <main className="min-h-screen bg-[#09090b] pb-28">
-      {/* Sticky Tab Bar */}
-      <div className="sticky top-0 z-30 bg-[#09090b]/95 backdrop-blur border-b border-[#27272a]">
-        <div className="max-w-6xl mx-auto px-3">
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide py-2.5">
-            {tabs.map((tab) => {
-              const isActive = activeTab === tab.key;
+    <div className="pb-28">
+      {/* Header */}
+      <header className="max-w-6xl mx-auto px-4 pt-8 pb-4">
+        <p className="font-hand text-2xl text-gold">The RollRicks menu card</p>
+        <h1 className="font-display font-black text-4xl sm:text-5xl text-ink leading-tight">What are you feeling?</h1>
+        <label className="relative block mt-4 max-w-md">
+          <span className="sr-only">Search the menu</span>
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search rolls, tikka, noodles…"
+            className="w-full h-11 pl-9 pr-9 rounded-full bg-raised border border-line text-ink placeholder:text-muted focus:outline-none focus:border-gold"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery("")}
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-muted"
+              aria-label="Clear search"
+              style={{ minHeight: 0 }}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </label>
+      </header>
+
+      {/* Sticky filters */}
+      <div ref={chipBarRef} className="sticky top-16 z-30 bg-base/90 backdrop-blur-md border-b border-line">
+        <div className="max-w-6xl mx-auto px-4 pt-3 pb-2 space-y-3">
+          <div className="flex">
+            <div role="tablist" aria-label="Diet" className="relative grid grid-cols-3 w-full sm:w-auto p-1 rounded-full bg-raised border border-line">
+              {DIETS.map((d) => {
+                const on = diet === d.key;
+                return (
+                  <button
+                    key={d.key}
+                    role="tab"
+                    aria-selected={on}
+                    onClick={() => setDiet(d.key)}
+                    className={`relative z-10 h-9 px-3 sm:px-4 rounded-full text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors ${
+                      on ? "text-white" : "text-soft"
+                    }`}
+                  >
+                    {on && (
+                      <motion.span
+                        layoutId="diet-pill"
+                        className={`absolute inset-0 -z-10 rounded-full ${dietAccent}`}
+                        transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                      />
+                    )}
+                    {d.key !== "all" && (
+                      <span className={`w-2 h-2 rounded-full ${on ? "bg-white" : d.key === "veg" ? "bg-veg" : "bg-nonveg"}`} />
+                    )}
+                    <span className={on && d.key === "all" ? "text-on-accent" : ""}>{d.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4">
+            {chips.map((c) => {
+              const on = active === c.key;
               return (
                 <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`relative flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                    isActive
-                      ? "text-[#09090b]"
-                      : "text-[#71717a] hover:text-[#a1a1aa]"
+                  key={c.key}
+                  id={`chip-${c.key}`}
+                  onClick={() => scrollTo(c.key)}
+                  className={`flex-shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-full border text-sm font-semibold whitespace-nowrap transition-colors ${
+                    on ? "bg-ink text-card border-ink" : "border-line text-soft hover:text-ink"
                   }`}
-                  style={isActive ? { backgroundColor: tabColors[tab.key] } : {}}
                 >
-                  <span className="text-base">{tab.emoji}</span>
-                  <span>{tab.key}</span>
+                  <span aria-hidden="true">{c.emoji}</span> {c.key}
                 </button>
               );
             })}
@@ -114,150 +191,77 @@ export default function MenuPage() {
         </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeTab}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
+      {/* Diet banner */}
+      {diet !== "all" && (
+        <div className="max-w-6xl mx-auto px-4 pt-5">
+          <div
+            className={`flex items-center gap-3 rounded-2xl border px-4 py-3 ${
+              diet === "veg" ? "border-veg/30 bg-veg/5" : "border-nonveg/30 bg-nonveg/5"
+            }`}
           >
-            {activeTab === "Combos" && (
-              <div>
-                <div className="mb-6">
-                  <h2 className="font-display text-3xl tracking-wider" style={{ color }}>
-                    COMBO DEALS
-                  </h2>
-                  <p className="text-sm text-[#71717a] font-body mt-1">
-                    Save more with our curated combos
-                  </p>
+            <VegMark type={diet} size={18} />
+            <p className={`text-sm font-semibold ${dietText}`}>
+              {diet === "veg" ? "Veg menu" : "Non-veg menu"}
+              <span className="font-normal text-soft"> · veg &amp; non-veg are prepared separately{diet === "nonveg" ? " · drinks shared" : ""}</span>
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-6xl mx-auto px-4">
+        {visibleCombos.length > 0 && (
+          <section id="sec-Combos" className="pt-8">
+            <SectionTitle emoji="🎁" title="Combos" count={visibleCombos.length} sub="Save more with our curated combos" />
+            {/* Swipe row on phones so the food sections stay close; grid from sm up */}
+            <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto sm:overflow-visible snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 pb-2">
+              {visibleCombos.map((combo) => (
+                <div key={combo.id} className="snap-start shrink-0 w-[82%] min-[480px]:w-[60%] sm:w-auto flex">
+                  <ComboCard combo={combo} />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {combos.map((combo) => (
-                    <ComboCard key={combo.id} combo={combo} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activeTab === "Veg" && (
-              <div className="flex flex-col gap-8">
-                {vegCategories.map((category) => (
-                  <div key={category.name}>
-                    {/* Category Header */}
-                    <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-[#22C55E]/30">
-                      <div className="w-10 h-10 rounded-xl bg-[#22C55E]/10 flex items-center justify-center text-xl">
-                        {category.emoji}
-                      </div>
-                      <div>
-                        <h3 className="font-display text-xl text-[#22C55E] tracking-wider">
-                          {category.name.toUpperCase()}
-                        </h3>
-                        <p className="text-xs text-[#71717a]">{category.items.length} items</p>
-                      </div>
-                      <div className="ml-auto flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm border-2 border-[#22C55E] flex items-center justify-center">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
-                        </span>
-                        <span className="text-[10px] font-bold text-[#22C55E] uppercase tracking-wider">VEG</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {applyAvailability(category.items).map((item) => (
-                        <MenuItem key={item.id} item={item} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {activeTab === "Non-Veg" && (
-              <div className="flex flex-col gap-8">
-                {nonVegCategories.map((category) => (
-                  <div key={category.name}>
-                    <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-[#E53935]/30">
-                      <div className="w-10 h-10 rounded-xl bg-[#E53935]/10 flex items-center justify-center text-xl">
-                        {category.emoji}
-                      </div>
-                      <div>
-                        <h3 className="font-display text-xl text-[#E53935] tracking-wider">
-                          {category.name.toUpperCase()}
-                        </h3>
-                        <p className="text-xs text-[#71717a]">{category.items.length} items</p>
-                      </div>
-                      <div className="ml-auto flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-sm border-2 border-[#E53935] flex items-center justify-center">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#E53935]" />
-                        </span>
-                        <span className="text-[10px] font-bold text-[#E53935] uppercase tracking-wider">NON-VEG</span>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {applyAvailability(category.items).map((item) => (
-                        <MenuItem key={item.id} item={item} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {activeTab === "Drinks" && drinksCategory && (
-              <div>
-                <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-[#3B82F6]/30">
-                  <div className="w-10 h-10 rounded-xl bg-[#3B82F6]/10 flex items-center justify-center text-xl">
-                    {drinksCategory.emoji}
-                  </div>
-                  <div>
-                    <h3 className="font-display text-xl text-[#3B82F6] tracking-wider">
-                      {drinksCategory.name.toUpperCase()}
-                    </h3>
-                    <p className="text-xs text-[#71717a]">{drinksCategory.items.length} items</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {applyAvailability(drinksCategory.items).map((item) => (
-                    <MenuItem key={item.id} item={item} />
-                  ))}
-                </div>
-              </div>
-            )}
-
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Sticky Bottom Cart Bar */}
-      <AnimatePresence>
-        {totalItems > 0 && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}
-            className="fixed bottom-0 left-0 right-0 z-40 px-3 pt-3"
-          >
-            <Link
-              href="/checkout"
-              className="flex items-center justify-between max-w-6xl mx-auto px-5 py-3.5 rounded-2xl bg-[#FFD600] text-[#09090b] shadow-[0_-4px_24px_rgba(255,214,0,0.3)]"
-            >
-              <div className="flex items-center gap-3">
-                <ShoppingCart className="w-5 h-5" />
-                <span className="font-bold text-sm">
-                  {totalItems} {totalItems === 1 ? "item" : "items"} — Checkout
-                </span>
-              </div>
-              <span className="font-display text-xl">
-                ₹{totalPrice}
-              </span>
-            </Link>
-          </motion.div>
+              ))}
+            </div>
+          </section>
         )}
-      </AnimatePresence>
-    </main>
+
+        {groups.map((g) => (
+          <section key={g.key} id={`sec-${g.key}`} className="pt-10">
+            <SectionTitle emoji={g.emoji} title={g.key} count={g.items.length} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {g.items.map((item) => (
+                <MenuItem key={item.id} item={item} />
+              ))}
+            </div>
+          </section>
+        ))}
+
+        {total === 0 && (
+          <div className="py-20 text-center">
+            <p className="font-hand text-3xl text-gold">Hmm, nothing here.</p>
+            <p className="mt-2 text-soft">
+              No dishes match &ldquo;{query}&rdquo;.{" "}
+              <button onClick={() => { setQuery(""); setDiet("all"); }} className="text-gold underline">
+                Show the full menu
+              </button>
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SectionTitle({ emoji, title, count, sub }: { emoji: string; title: string; count: number; sub?: string }) {
+  return (
+    <div className="flex items-end justify-between gap-3 mb-4">
+      <div>
+        <h2 className="font-display font-black text-3xl text-ink">
+          <span className="brush">{title}</span>
+        </h2>
+        {sub && <p className="text-xs text-muted mt-1">{sub}</p>}
+      </div>
+      <span className="text-xs text-muted flex items-center gap-1.5">
+        <span aria-hidden="true">{emoji}</span> {count} {count === 1 ? "item" : "items"}
+      </span>
+    </div>
   );
 }

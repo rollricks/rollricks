@@ -69,8 +69,8 @@ create policy "anyone can read menu_config" on public.menu_config
 create policy "anyone can create an order" on public.orders
   for insert to anon, authenticated with check (status = 'new');
 
-create policy "anyone can read orders by phone" on public.orders
-  for select to anon, authenticated using (true);
+-- No public SELECT on orders: customers read through the track_orders()
+-- / slot_counts() functions in migrations/002_privacy_and_partner.sql.
 
 create policy "anyone can submit an enquiry" on public.event_enquiries
   for insert to anon, authenticated with check (true);
@@ -92,7 +92,8 @@ create policy "admin can read enquiries" on public.event_enquiries
   using (auth.jwt() ->> 'email' = 'admin@rollricks.in');
 
 -- Grants (belt-and-braces; Supabase auto-grants but explicit is safer)
-grant select, insert on public.orders to anon, authenticated;
+grant insert on public.orders to anon, authenticated;
+grant select on public.orders to authenticated;
 grant update on public.orders to authenticated;
 grant select on public.menu_config to anon, authenticated;
 grant insert, update on public.menu_config to authenticated;
