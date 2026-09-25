@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { hitItems } from "@/lib/menu-data";
 import { useMenuAvailability } from "@/lib/useMenuAvailability";
-import { BRAND, HOURS, LOCATIONS } from "@/lib/site";
+import { BRAND, HOURS, LOCATIONS, addressLine } from "@/lib/site";
 import { FAQ } from "@/lib/faq";
 import { REVIEWS } from "@/lib/reviews";
 import MenuItem from "@/components/MenuItem";
@@ -162,7 +162,7 @@ export default function HomePage() {
               </a>
             </motion.div>
             <motion.p custom={3.5} variants={rise} initial="hidden" animate="visible" className="mt-5 text-xs text-[#E8D5B5]/80">
-              {HOURS.days} · {HOURS.label} · {loc.line2}, {loc.city}
+              {HOURS.days} · {HOURS.label} · {addressLine(loc)}
             </motion.p>
           </div>
         </div>
@@ -528,9 +528,8 @@ export default function HomePage() {
               <p className="flex gap-2 text-soft">
                 <MapPin className="w-5 h-5 text-gold flex-shrink-0" />
                 <span>
-                  {l.line1}
-                  <br />
-                  {l.line2}, {l.city}, {l.region}
+                  {addressLine(l)}, {l.region}
+                  {l.note && <span className="block text-xs text-muted mt-1">{l.note}</span>}
                 </span>
               </p>
               <p className="flex gap-2 text-soft">

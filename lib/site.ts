@@ -31,57 +31,37 @@ export const HOURS = {
 export type CartLocation = {
   id: string;
   name: string;
-  line1: string;
-  line2: string;
+  area: string; // neighbourhood, e.g. "Katanga"
   city: string;
   region: string;
   country: string;
+  note?: string; // e.g. the cart is mobile — ask for the exact spot
   mapsUrl: string;
   mapsEmbed: string;
 };
 
-// Taken from the RollRicks menu creatives. Add more carts here and the
-// Find Us section, FAQ and schema all pick them up — only list real,
-// operating carts.
-const LOCATION_QUERY = "Johnson Kanya Prathmik Shala, Ratan Colony, Gorakhpur, Jabalpur";
+// Only real, operating carts. Add an entry here and Find Us, the
+// footer, FAQ and the Restaurant schema all pick it up.
+const KATANGA_QUERY = "Katanga, Jabalpur, Madhya Pradesh";
 
 export const LOCATIONS: CartLocation[] = [
   {
-    id: "gorakhpur",
-    name: "RollRicks — Gorakhpur",
-    line1: "Near Johnson Kanya Prathmik Shala",
-    line2: "Ratan Colony, Gorakhpur",
+    id: "katanga",
+    name: "RollRicks — Katanga",
+    area: "Katanga",
     city: "Jabalpur",
     region: "Madhya Pradesh",
     country: "IN",
-    mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(LOCATION_QUERY)}`,
-    mapsEmbed: `https://www.google.com/maps?q=${encodeURIComponent(LOCATION_QUERY)}&output=embed`,
+    note: "Our e-rickshaw cart parks in Katanga every evening. WhatsApp us for today's exact spot.",
+    mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(KATANGA_QUERY)}`,
+    mapsEmbed: `https://www.google.com/maps?q=${encodeURIComponent(KATANGA_QUERY)}&output=embed`,
   },
-  // Outlets named on the June 2026 banners. Uncomment once confirmed
-  // operating — Find Us, the footer and FAQ list every entry here.
-  // {
-  //   id: "katanga",
-  //   name: "RollRicks — Katanga",
-  //   line1: "Food cart",
-  //   line2: "Katanga",
-  //   city: "Jabalpur",
-  //   region: "Madhya Pradesh",
-  //   country: "IN",
-  //   mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Katanga, Jabalpur")}`,
-  //   mapsEmbed: `https://www.google.com/maps?q=${encodeURIComponent("Katanga, Jabalpur")}&output=embed`,
-  // },
-  // {
-  //   id: "south-avenue",
-  //   name: "RollRicks — South Avenue Mall",
-  //   line1: "Food Court, South Avenue Mall",
-  //   line2: "South Avenue Mall",
-  //   city: "Jabalpur",
-  //   region: "Madhya Pradesh",
-  //   country: "IN",
-  //   mapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("South Avenue Mall, Jabalpur")}`,
-  //   mapsEmbed: `https://www.google.com/maps?q=${encodeURIComponent("South Avenue Mall, Jabalpur")}&output=embed`,
-  // },
 ];
+
+/** "Katanga, Jabalpur" */
+export function addressLine(l: CartLocation): string {
+  return `${l.area}, ${l.city}`;
+}
 
 // ── Open / closed (always computed in IST, never hardcoded) ──
 

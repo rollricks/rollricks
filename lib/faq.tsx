@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { FaqEntry } from "@/components/Faq";
-import { BRAND, HOURS, LOCATIONS } from "./site";
+import { BRAND, HOURS, LOCATIONS, addressLine } from "./site";
 import { SLOT_CAPACITY } from "./upi";
 
 // Answers describe how the site and cart actually work today
@@ -12,11 +12,15 @@ export const FAQ: FaqEntry[] = [
     q: "Where is RollRicks?",
     a: (
       <>
-        Our cart is at {loc.line1}, {loc.line2}, {loc.city}.{" "}
+        Our cart is in {addressLine(loc)}, every evening.{" "}
         <a href={loc.mapsUrl} target="_blank" rel="noopener noreferrer" className="text-gold underline">
-          Get directions
+          Open in Maps
         </a>
-        .
+        , or{" "}
+        <a href={BRAND.whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-gold underline">
+          WhatsApp us
+        </a>{" "}
+        for today&apos;s exact spot.
       </>
     ),
   },

@@ -96,8 +96,7 @@ const jsonLd = {
   sameAs: [BRAND.instagramUrl],
   address: LOCATIONS.map((l) => ({
     "@type": "PostalAddress",
-    streetAddress: `${l.line1}, ${l.line2}`,
-    addressLocality: l.city,
+    addressLocality: `${l.area}, ${l.city}`,
     addressRegion: l.region,
     addressCountry: l.country,
   }))[0],

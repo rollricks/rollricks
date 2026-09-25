@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Instagram, MessageCircle, MapPin, Clock } from "lucide-react";
-import { BRAND, HOURS, LOCATIONS } from "@/lib/site";
+import { BRAND, HOURS, LOCATIONS, addressLine } from "@/lib/site";
 import Seal from "./Seal";
 
 export default function Footer() {
@@ -26,9 +26,7 @@ export default function Footer() {
           {LOCATIONS.map((l) => (
             <a key={l.id} href={l.mapsUrl} target="_blank" rel="noopener noreferrer" className="flex gap-2 text-soft hover:text-gold">
               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>
-                {l.line1}, {l.line2}, {l.city}
-              </span>
+              <span>{addressLine(l)}</span>
             </a>
           ))}
           <p className="flex gap-2 text-soft">

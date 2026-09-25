@@ -54,7 +54,7 @@ const DISCLAIMER =
 
 // Network graphic: the one real cart, then future nodes drawn dashed.
 const nodes = [
-  { x: 50, y: 52, label: "RollRicks · Jabalpur", real: true },
+  { x: 50, y: 52, label: "Katanga · Jabalpur", real: true },
   { x: 27, y: 24, label: "Where we go next" },
   { x: 72, y: 20, label: "Future location" },
   { x: 27, y: 68, label: "Future location" },
